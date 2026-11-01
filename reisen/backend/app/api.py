@@ -1,4 +1,4 @@
-"""REST-API: Reisen, Buchungen, Anhänge."""
+"""REST-API: Reisen, Buchungen, Anhänge, Aufgaben."""
 
 import mimetypes
 import re
@@ -15,13 +15,16 @@ from sqlmodel import Session, select
 
 from .config import DEFAULT_TIMEZONE, FILES_DIR, MAX_UPLOAD_MB
 from .db import get_session
-from .models import Attachment, Booking, Trip
+from .models import Attachment, Booking, Task, Trip
 from .schemas import (
     AttachmentOut,
     BookingIn,
     BookingOut,
     BookingPatch,
     NextBooking,
+    TaskIn,
+    TaskOut,
+    TaskPatch,
     TripDetailOut,
     TripIn,
     TripOut,
@@ -96,8 +99,14 @@ def _sort_key(b: BookingOut):
     return (b.start_utc is None, b.start_utc or datetime.max.replace(tzinfo=timezone.utc), b.title)
 
 
+def task_sort_key(t: Task):
+    return (t.done, t.due_date is None, t.due_date or date.max, t.sort_order, t.created_at)
+
+
 def trip_out(s: Session, t: Trip, detail: bool = False):
     bookings = s.exec(select(Booking).where(Booking.trip_id == t.id)).all()
+    tasks = s.exec(select(Task).where(Task.trip_id == t.id)).all()
+    today = date.today()
     atts = s.exec(select(Attachment).where(Attachment.trip_id == t.id)).all()
     b_out = sorted((booking_out(b, atts) for b in bookings), key=_sort_key)
 
@@ -125,6 +134,8 @@ def trip_out(s: Session, t: Trip, detail: bool = False):
         booking_count=len(bookings),
         attachment_count=len(atts),
         total_cost=round(total, 2),
+        open_tasks=sum(1 for x in tasks if not x.done),
+        overdue_tasks=sum(1 for x in tasks if not x.done and x.due_date and x.due_date < today),
         next_booking=NextBooking(
             id=nxt.id, type=nxt.type, title=nxt.title, start_at=nxt.start_at, start_tz=nxt.start_tz
         )
@@ -136,7 +147,12 @@ def trip_out(s: Session, t: Trip, detail: bool = False):
     )
     if not detail:
         return TripOut(**base)
-    return TripDetailOut(**base, bookings=b_out, attachments=[att_out(a) for a in atts])
+    return TripDetailOut(
+        **base,
+        bookings=b_out,
+        attachments=[att_out(a) for a in atts],
+        tasks=[TaskOut(**x.model_dump()) for x in sorted(tasks, key=task_sort_key)],
+    )
 
 
 def get_trip_or_404(s: Session, trip_id: str) -> Trip:
@@ -185,7 +201,7 @@ def info(request: Request):
         "user": current_user(request),
         "default_currency": DEFAULT_CURRENCY,
         "default_timezone": DEFAULT_TIMEZONE,
-        "version": "0.1.0",
+        "version": "0.2.0",
     }
 
 
@@ -236,6 +252,8 @@ def delete_trip(trip_id: str, s: Session = Depends(get_session)):
     t = get_trip_or_404(s, trip_id)
     for a in s.exec(select(Attachment).where(Attachment.trip_id == t.id)).all():
         s.delete(a)
+    for x in s.exec(select(Task).where(Task.trip_id == t.id)).all():
+        s.delete(x)
     for b in s.exec(select(Booking).where(Booking.trip_id == t.id)).all():
         s.delete(b)
     s.delete(t)
@@ -433,4 +451,74 @@ def delete_attachment(att_id: str, s: Session = Depends(get_session)):
         raise HTTPException(404, "Anhang nicht gefunden")
     (FILES_DIR / a.trip_id / a.storage_name).unlink(missing_ok=True)
     s.delete(a)
+    s.commit()
+
+
+# ---------------------------------------------------------------- Aufgaben
+def get_task_or_404(s: Session, task_id: str) -> Task:
+    x = s.get(Task, task_id)
+    if not x:
+        raise HTTPException(404, "Aufgabe nicht gefunden")
+    return x
+
+
+@router.get("/trips/{trip_id}/tasks", response_model=list[TaskOut])
+def list_tasks(trip_id: str, s: Session = Depends(get_session)):
+    get_trip_or_404(s, trip_id)
+    return sorted(s.exec(select(Task).where(Task.trip_id == trip_id)).all(), key=task_sort_key)
+
+
+@router.post("/trips/{trip_id}/tasks", response_model=TaskOut, status_code=201)
+def create_task(trip_id: str, data: TaskIn, request: Request, s: Session = Depends(get_session)):
+    t = get_trip_or_404(s, trip_id)
+    last = s.exec(select(Task).where(Task.trip_id == t.id)).all()
+    x = Task(
+        trip_id=t.id,
+        **data.model_dump(),
+        sort_order=max((y.sort_order for y in last), default=0) + 1,
+        created_by=current_user(request),
+    )
+    s.add(x)
+    s.commit()
+    s.refresh(x)
+    return x
+
+
+@router.patch("/tasks/{task_id}", response_model=TaskOut)
+def update_task(task_id: str, data: TaskPatch, s: Session = Depends(get_session)):
+    x = get_task_or_404(s, task_id)
+    changes = data.model_dump(exclude_unset=True)
+    if "done" in changes and changes["done"] != x.done:
+        x.done_at = _now() if changes["done"] else None
+    for k, v in changes.items():
+        setattr(x, k, v)
+    s.add(x)
+    s.commit()
+    s.refresh(x)
+    return x
+
+
+@router.delete("/tasks/{task_id}", status_code=204)
+def delete_task(task_id: str, s: Session = Depends(get_session)):
+    s.delete(get_task_or_404(s, task_id))
+    s.commit()
+
+
+@router.post("/trips/{trip_id}/tasks/reorder", response_model=list[TaskOut])
+def reorder_tasks(trip_id: str, ids: list[str], s: Session = Depends(get_session)):
+    get_trip_or_404(s, trip_id)
+    tasks = {x.id: x for x in s.exec(select(Task).where(Task.trip_id == trip_id)).all()}
+    for i, tid in enumerate(ids):
+        if tid in tasks:
+            tasks[tid].sort_order = i
+            s.add(tasks[tid])
+    s.commit()
+    return sorted(tasks.values(), key=task_sort_key)
+
+
+@router.post("/trips/{trip_id}/tasks/clear-done", status_code=204)
+def clear_done_tasks(trip_id: str, s: Session = Depends(get_session)):
+    get_trip_or_404(s, trip_id)
+    for x in s.exec(select(Task).where(Task.trip_id == trip_id, Task.done == True)).all():  # noqa: E712
+        s.delete(x)
     s.commit()

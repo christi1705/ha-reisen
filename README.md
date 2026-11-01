@@ -10,8 +10,9 @@ Inspiriert von [Surmai](https://surmai.app/) (Übersichtlichkeit) und [TREK](htt
 
 ## Etappen
 - [x] **Etappe 1:** Reisen, Buchungen, Ablaufansicht, Dokumente
+- [x] **Aufgaben** pro Reise (aus Etappe 3 vorgezogen)
 - [ ] **Etappe 2:** Karte, Ortssuche, Orte-Sammlung, Tagesplanung per Drag & Drop
-- [ ] **Etappe 3:** Notizen, Ausgaben, Aufgaben, HA-Sensoren & Kalender
+- [ ] **Etappe 3:** Notizen, Ausgaben, HA-Sensoren & Kalender
 
 ## Entwicklung
 ```bash

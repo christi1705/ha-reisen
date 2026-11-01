@@ -9,16 +9,18 @@ import BookingCard from '../components/BookingCard'
 import BookingForm from '../components/BookingForm'
 import Documents from '../components/Documents'
 import Preview from '../components/Preview'
+import Tasks from '../components/Tasks'
 import Timeline from '../components/Timeline'
 import TripForm from '../components/TripForm'
 import { BOOKING_TYPES, TYPE_ORDER } from '../bookingTypes'
 import { cls, countdownLabel, fmtMoney, fmtRange, gradientFor } from '../util'
 
-type Tab = 'ablauf' | 'buchungen' | 'dokumente'
+type Tab = 'ablauf' | 'buchungen' | 'dokumente' | 'aufgaben'
 const TABS: { id: Tab; label: string; icon: typeof CalendarDays }[] = [
   { id: 'ablauf', label: 'Ablauf', icon: CalendarDays },
   { id: 'buchungen', label: 'Buchungen', icon: Ticket },
   { id: 'dokumente', label: 'Dokumente', icon: FileText },
+  { id: 'aufgaben', label: 'Aufgaben', icon: ListChecks },
 ]
 
 export default function TripDetail({ info }: { info: AppInfo | null }) {
@@ -101,9 +103,16 @@ export default function TripDetail({ info }: { info: AppInfo | null }) {
 
       <div className="mx-auto max-w-5xl px-4 sm:px-6">
         {/* Kennzahlen */}
-        <div className="-mt-px grid grid-cols-3 gap-3 py-4">
+        <div className="-mt-px grid grid-cols-2 gap-3 py-4 sm:grid-cols-4">
           <Stat icon={Ticket} label="Buchungen" value={String(trip.booking_count)} />
           <Stat icon={FileText} label="Dokumente" value={String(trip.attachment_count)} />
+          <Stat
+            icon={ListChecks}
+            label={trip.overdue_tasks ? `${trip.overdue_tasks} überfällig` : 'Aufgaben offen'}
+            value={String(trip.open_tasks)}
+            warn={trip.overdue_tasks > 0}
+            onClick={() => nav(`/trip/${trip.id}/aufgaben`, { replace: true })}
+          />
           <Stat
             icon={Wallet}
             label={trip.budget ? `Budget ${fmtMoney(trip.budget, trip.currency)}` : 'Kosten'}
@@ -114,17 +123,20 @@ export default function TripDetail({ info }: { info: AppInfo | null }) {
         {trip.description && <p className="mb-4 whitespace-pre-line text-sm text-slate-600 dark:text-slate-300">{trip.description}</p>}
 
         {/* Reiter */}
-        <div className="sticky top-0 z-20 -mx-4 mb-4 flex items-center gap-1 border-b border-slate-200 bg-slate-50/90 px-4 backdrop-blur sm:-mx-6 sm:px-6 dark:border-slate-800 dark:bg-slate-950/90">
+        <div className="sticky top-0 z-20 -mx-4 mb-4 flex items-center gap-0.5 overflow-x-auto border-b border-slate-200 bg-slate-50/90 px-2 backdrop-blur [scrollbar-width:none] sm:-mx-6 sm:gap-1 sm:px-6 dark:border-slate-800 dark:bg-slate-950/90">
           {TABS.map((t) => (
             <button
               key={t.id}
               onClick={() => nav(`/trip/${trip.id}/${t.id}`, { replace: true })}
               className={cls(
-                'flex items-center gap-2 border-b-2 px-3 py-3.5 text-sm font-medium transition',
+                'flex shrink-0 items-center gap-1.5 border-b-2 px-2.5 py-3.5 text-sm font-medium transition sm:gap-2 sm:px-3',
                 current === t.id ? 'border-brand-600 text-brand-700 dark:text-brand-300' : 'border-transparent text-slate-500 hover:text-slate-800 dark:hover:text-slate-200',
               )}
             >
-              <t.icon size={16} /> <span>{t.label}</span>
+              <t.icon size={16} className="hidden sm:block" /> <span>{t.label}</span>
+              {t.id === 'aufgaben' && trip.open_tasks > 0 && (
+                <span className={cls('chip px-1.5 py-0 text-[11px]', trip.overdue_tasks ? 'bg-red-500 text-white' : 'bg-slate-200 text-slate-700 dark:bg-slate-700 dark:text-slate-200')}>{trip.open_tasks}</span>
+              )}
             </button>
           ))}
           <button className="btn-primary my-2 ml-auto hidden px-3 sm:inline-flex" onClick={() => setBookingForm({})}><Plus size={16} /> Buchung</button>
@@ -163,8 +175,10 @@ export default function TripDetail({ info }: { info: AppInfo | null }) {
 
         {current === 'dokumente' && <Documents trip={trip} onChanged={load} onPreview={setPreview} />}
 
+        {current === 'aufgaben' && <Tasks trip={trip} onChanged={load} />}
+
         <p className="mt-10 flex items-center justify-center gap-2 text-xs text-slate-400">
-          <ListChecks size={14} /> Karte, Tagesplanung, Notizen, Ausgaben und Aufgaben folgen in den nächsten Etappen.
+          <MapPin size={14} /> Karte, Tagesplanung, Notizen und Ausgaben folgen in den nächsten Etappen.
         </p>
       </div>
 
@@ -195,17 +209,20 @@ export default function TripDetail({ info }: { info: AppInfo | null }) {
   )
 }
 
-function Stat({ icon: Icon, label, value, bar }: { icon: typeof Ticket; label: string; value: string; bar?: number | null }) {
+function Stat({ icon: Icon, label, value, bar, warn, onClick }: {
+  icon: typeof Ticket; label: string; value: string; bar?: number | null; warn?: boolean; onClick?: () => void
+}) {
+  const Tag = onClick ? 'button' : 'div'
   return (
-    <div className="card p-3 sm:p-4">
-      <div className="flex items-center gap-1.5 text-slate-500"><Icon size={14} className="hidden shrink-0 sm:block" /><span className="truncate text-xs">{label}</span></div>
+    <Tag onClick={onClick} className={cls('card p-3 text-left sm:p-4', onClick && 'transition hover:shadow-lg')}>
+      <div className={cls('flex items-center gap-1.5', warn ? 'text-red-600 dark:text-red-400' : 'text-slate-500')}><Icon size={14} className="hidden shrink-0 sm:block" /><span className="truncate text-xs">{label}</span></div>
       <p className="mt-1 truncate text-lg font-bold tabular-nums sm:text-xl">{value}</p>
       {bar != null && (
         <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-slate-100 dark:bg-slate-800">
           <div className={cls('h-full rounded-full', bar >= 100 ? 'bg-red-500' : bar >= 80 ? 'bg-amber-500' : 'bg-emerald-500')} style={{ width: `${bar}%` }} />
         </div>
       )}
-    </div>
+    </Tag>
   )
 }
 

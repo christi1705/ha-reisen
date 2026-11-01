@@ -1,4 +1,4 @@
-import { Archive, ChevronDown, MapPin, Plane, Plus } from 'lucide-react'
+import { Archive, ChevronDown, ListChecks, MapPin, Plane, Plus } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { api, type AppInfo, type Trip } from '../api'
@@ -34,6 +34,13 @@ function TripCard({ t }: { t: Trip }) {
           <p className="flex items-center gap-1.5 truncate text-sm text-slate-600 dark:text-slate-300">
             <MapPin size={14} className="shrink-0 text-slate-400" />
             {t.destinations.map((d) => d.name).join(' · ')}
+          </p>
+        )}
+        {t.open_tasks > 0 && t.status !== 'past' && (
+          <p className={cls('flex items-center gap-1.5 text-sm', t.overdue_tasks ? 'text-red-600 dark:text-red-400' : 'text-slate-500')}>
+            <ListChecks size={14} className="shrink-0" />
+            {t.open_tasks === 1 ? '1 offene Aufgabe' : `${t.open_tasks} offene Aufgaben`}
+            {t.overdue_tasks > 0 && <span className="text-xs">· {t.overdue_tasks} überfällig</span>}
           </p>
         )}
         {t.next_booking && NextIcon && t.status !== 'past' ? (

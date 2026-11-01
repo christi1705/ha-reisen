@@ -71,13 +71,29 @@ export interface Trip {
   booking_count: number
   attachment_count: number
   total_cost: number
+  open_tasks: number
+  overdue_tasks: number
   next_booking: { id: string; type: BookingType; title: string; start_at: string | null; start_tz: string | null } | null
   created_by: string | null
+}
+
+export interface Task {
+  id: string
+  trip_id: string
+  title: string
+  done: boolean
+  due_date: string | null
+  notes: string | null
+  sort_order: number
+  created_by: string | null
+  created_at: string
+  done_at: string | null
 }
 
 export interface TripDetail extends Trip {
   bookings: Booking[]
   attachments: Attachment[]
+  tasks: Task[]
 }
 
 export interface Airport {
@@ -162,6 +178,12 @@ export const api = {
   updateAttachment: (id: string, d: { filename?: string; booking_id?: string | null }) =>
     req<Attachment>('PATCH', `api/attachments/${id}`, d),
   deleteAttachment: (id: string) => req<void>('DELETE', `api/attachments/${id}`),
+
+  createTask: (tripId: string, d: { title: string; due_date?: string | null; notes?: string | null }) =>
+    req<Task>('POST', `api/trips/${tripId}/tasks`, d),
+  updateTask: (id: string, d: Partial<Pick<Task, 'title' | 'done' | 'due_date' | 'notes'>>) => req<Task>('PATCH', `api/tasks/${id}`, d),
+  deleteTask: (id: string) => req<void>('DELETE', `api/tasks/${id}`),
+  clearDoneTasks: (tripId: string) => req<void>('POST', `api/trips/${tripId}/tasks/clear-done`),
 
   airports: (q: string) => req<Airport[]>('GET', `api/ref/airports?q=${encodeURIComponent(q)}&limit=8`),
   airlines: (q: string) => req<Airline[]>('GET', `api/ref/airlines?q=${encodeURIComponent(q)}&limit=8`),

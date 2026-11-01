@@ -73,6 +73,32 @@ class NextBooking(BaseModel):
     start_tz: Optional[str]
 
 
+class TaskIn(BaseModel):
+    title: str = Field(min_length=1, max_length=300)
+    due_date: Optional[date] = None
+    notes: Optional[str] = None
+
+
+class TaskPatch(BaseModel):
+    title: Optional[str] = Field(default=None, min_length=1, max_length=300)
+    done: Optional[bool] = None
+    due_date: Optional[date] = None
+    notes: Optional[str] = None
+
+
+class TaskOut(BaseModel):
+    id: str
+    trip_id: str
+    title: str
+    done: bool
+    due_date: Optional[date]
+    notes: Optional[str]
+    sort_order: int
+    created_by: Optional[str]
+    created_at: datetime
+    done_at: Optional[datetime]
+
+
 class TripOut(BaseModel):
     id: str
     title: str
@@ -89,6 +115,8 @@ class TripOut(BaseModel):
     booking_count: int
     attachment_count: int
     total_cost: float
+    open_tasks: int = 0
+    overdue_tasks: int = 0
     next_booking: Optional[NextBooking] = None
     created_by: Optional[str]
     created_at: datetime
@@ -182,3 +210,4 @@ class BookingOut(BaseModel):
 class TripDetailOut(TripOut):
     bookings: list[BookingOut]
     attachments: list[AttachmentOut]
+    tasks: list[TaskOut]

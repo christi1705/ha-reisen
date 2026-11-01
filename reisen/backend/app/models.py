@@ -1,4 +1,4 @@
-"""Datenmodell der Reisen-App (Etappe 1: Reisen, Buchungen, Anhänge)."""
+"""Datenmodell der Reisen-App: Reisen, Buchungen, Anhänge, Aufgaben."""
 
 import uuid
 from datetime import date, datetime, timezone
@@ -83,6 +83,19 @@ class Attachment(SQLModel, table=True):
     storage_name: str
     uploaded_by: Optional[str] = None
     uploaded_at: datetime = Field(default_factory=_now)
+
+
+class Task(SQLModel, table=True):
+    id: str = Field(default_factory=_uuid, primary_key=True)
+    trip_id: str = Field(foreign_key="trip.id", index=True)
+    title: str
+    done: bool = False
+    due_date: Optional[date] = None
+    notes: Optional[str] = None
+    sort_order: int = 0
+    created_by: Optional[str] = None
+    created_at: datetime = Field(default_factory=_now)
+    done_at: Optional[datetime] = None
 
 
 class SchemaInfo(SQLModel, table=True):
