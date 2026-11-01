@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.4.2
+- **Ablauf als grobe Reiseübersicht:** nur noch Stationen (Übernachtungen) und Verbindungen; je Tag eine kompakte Zeile mit dem Programm, die in die Tagesansicht führt
+- Details (Orte, Restaurants, Aktivitäten) nur noch in der Tagesansicht
+- Karte im Ablauf zeigt nur Unterkünfte und Strecken
+
 ## 0.4.1
 - Tagesansicht: Karte zeigt nur noch, was zu diesem Tag gehört (Orte, Übernachtung, Termine, Fahrten des Tages), und zoomt auf alle Stationen des Tages
 

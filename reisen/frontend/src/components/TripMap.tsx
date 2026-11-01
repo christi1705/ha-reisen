@@ -22,6 +22,8 @@ interface Props {
   activeDay?: string | null
   /** Nur diesen Tag zeigen (alles andere ausblenden) und auf alle Stationen des Tages zoomen */
   dayOnly?: string | null
+  /** Grobe Übersicht: nur Unterkünfte und Strecken (keine einzelnen Orte/Termine) */
+  overview?: boolean
   focus?: MapFocus | null
   onPlaceClick?: (p: Place) => void
   onBookingClick?: (b: Booking) => void
@@ -156,7 +158,7 @@ function InvalidateOnResize() {
   return null
 }
 
-export default function TripMap({ trip, activeDay: activeDayProp, dayOnly, focus, onPlaceClick, onBookingClick, className, highlightId }: Props) {
+export default function TripMap({ trip, activeDay: activeDayProp, dayOnly, overview, focus, onPlaceClick, onBookingClick, className, highlightId }: Props) {
   const activeDay = dayOnly ?? activeDayProp
   const [layers, setLayers] = useState<Record<LayerKey, boolean>>({ places: true, stays: true, transport: true })
   const [menu, setMenu] = useState(false)
@@ -172,6 +174,7 @@ export default function TripMap({ trip, activeDay: activeDayProp, dayOnly, focus
     const m = new Map<string, Place[]>()
     for (const p of trip.places) {
       if (!has(p)) continue
+      if (overview) continue
       if (dayOnly && p.day !== dayOnly) continue
       const k = p.day ?? ''
       if (!m.has(k)) m.set(k, [])
@@ -179,11 +182,12 @@ export default function TripMap({ trip, activeDay: activeDayProp, dayOnly, focus
     }
     for (const list of m.values()) list.sort((a, b) => a.sort_order - b.sort_order)
     return m
-  }, [trip.places, dayOnly])
+  }, [trip.places, dayOnly, overview])
 
   const day10 = (v: string | null) => (v ? v.slice(0, 10) : '')
   // Im Tagesmodus: nur was zu diesem Tag gehört
   const relevantStay = (b: Booking) => {
+    if (overview) return b.type === 'lodging'
     if (!dayOnly) return true
     if (b.type === 'lodging') {
       const s = day10(b.start_at)
@@ -213,12 +217,14 @@ export default function TripMap({ trip, activeDay: activeDayProp, dayOnly, focus
     if (!pts.length) {
       for (const list of placesByDay.values()) for (const p of list) pts.push([p.lat!, p.lon!])
       for (const b of stays) pts.push([b.to_location!.lat!, b.to_location!.lon!])
+      // Übersicht: Bahn-/Bus-/Autostrecken gehören zum Ausschnitt (Flüge nicht, sonst halbe Weltkarte)
+      if (overview) for (const b of routes) if (b.type !== 'flight') pts.push([b.from_location!.lat!, b.from_location!.lon!], [b.to_location!.lat!, b.to_location!.lon!])
       // Flüge nur einbeziehen, wenn sonst nichts da ist (sonst halbe Weltkarte)
       if (!pts.length) for (const b of routes) pts.push([b.from_location!.lat!, b.from_location!.lon!], [b.to_location!.lat!, b.to_location!.lon!])
       if (!pts.length) for (const d of trip.destinations) if (has(d)) pts.push([d.lat, d.lon])
     }
     return pts
-  }, [activeDay, dayOnly, placesByDay, stays, routes, trip.destinations])
+  }, [activeDay, dayOnly, overview, placesByDay, stays, routes, trip.destinations])
 
   const fitKey = `${trip.id}|${activeDay ?? ''}|${dayOnly ? 'only' : ''}|${fitPoints.length}|${fitNonce}`
   const dimOther = (d: string | null) => !dayOnly && !!activeDay && d !== activeDay
@@ -291,6 +297,14 @@ export default function TripMap({ trip, activeDay: activeDayProp, dayOnly, focus
             </Marker>
           ))}
 
+        {/* Reiseziele (nur Übersicht, wenn es noch keine Unterkünfte gibt) */}
+        {overview && stays.length === 0 &&
+          trip.destinations.filter(has).map((d) => (
+            <Marker key={`dest-${d.name}`} position={[d.lat!, d.lon!]} icon={pinIcon('#64748b', '')}>
+              <Tooltip direction="top" offset={[0, -14]}>{d.name}</Tooltip>
+            </Marker>
+          ))}
+
         {/* Orte */}
         {layers.places &&
           [...placesByDay.entries()].flatMap(([d, list]) =>
@@ -335,7 +349,7 @@ export default function TripMap({ trip, activeDay: activeDayProp, dayOnly, focus
       </div>
 
       {/* Legende der Tage */}
-      {!dayOnly && days.length > 1 && trip.places.some((p) => p.day) && (
+      {!dayOnly && !overview && days.length > 1 && trip.places.some((p) => p.day) && (
         <div className="pointer-events-none absolute bottom-6 left-3 z-[500] flex max-w-[70%] flex-wrap gap-1">
           {days.map((d, i) =>
             placesByDay.has(d) ? (

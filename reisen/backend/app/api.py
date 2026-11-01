@@ -236,7 +236,7 @@ def info(request: Request):
         "user": current_user(request),
         "default_currency": DEFAULT_CURRENCY,
         "default_timezone": DEFAULT_TIMEZONE,
-        "version": "0.4.1",
+        "version": "0.4.2",
     }
 
 

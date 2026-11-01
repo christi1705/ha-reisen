@@ -10,12 +10,12 @@ import BookingForm from '../components/BookingForm'
 import Costs from '../components/Costs'
 import DayView, { defaultDay } from '../components/DayView'
 import Documents from '../components/Documents'
+import Itinerary from '../components/Itinerary'
 import Planning from '../components/Planning'
 import PlaceForm from '../components/PlaceForm'
 import TripMap, { type MapFocus } from '../components/TripMap'
 import Preview from '../components/Preview'
 import Tasks from '../components/Tasks'
-import Timeline from '../components/Timeline'
 import TripForm from '../components/TripForm'
 import { BOOKING_TYPES, TYPE_ORDER } from '../bookingTypes'
 import { cls, countdownLabel, fmtMoney, fmtRange, gradientFor, useIsDesktop } from '../util'
@@ -42,7 +42,7 @@ export default function TripDetail({ info }: { info: AppInfo | null }) {
   const [menu, setMenu] = useState(false)
   const [filter, setFilter] = useState<BookingType | 'all'>('all')
   const [placeEdit, setPlaceEdit] = useState<Place | null>(null)
-  const [focus, setFocus] = useState<MapFocus | null>(null)
+  const [focus] = useState<MapFocus | null>(null)
   const [showMap, setShowMap] = useState(false)
   const isDesktop = useIsDesktop()
   const coverInput = useRef<HTMLInputElement>(null)
@@ -167,15 +167,13 @@ export default function TripDetail({ info }: { info: AppInfo | null }) {
                   <button className="btn-ghost -ml-3 mb-2" onClick={() => setShowMap(!showMap)}>
                     <MapIcon size={16} /> {showMap ? 'Karte ausblenden' : 'Karte anzeigen'}
                   </button>
-                  {showMap && <TripMap trip={trip} focus={focus} onPlaceClick={setPlaceEdit} onBookingClick={(b) => setBookingForm({ booking: b })} className="h-72" />}
+                  {showMap && <TripMap trip={trip} overview focus={focus} onPlaceClick={setPlaceEdit} onBookingClick={(b) => setBookingForm({ booking: b })} className="h-72" />}
                 </div>
               )}
-              <Timeline
+              <Itinerary
                 trip={trip}
-                onDayClick={(d) => nav(`/trip/${trip.id}/tag/${d}`)}
+                onDay={(d) => nav(`/trip/${trip.id}/tag/${d}`)}
                 onOpen={(b) => setBookingForm({ booking: b })}
-                onOpenPlace={setPlaceEdit}
-                onLocate={(lat, lon) => { setFocus({ lat, lon, zoom: 15, key: Date.now() }); setShowMap(true) }}
                 onPreview={setPreview}
                 onAdd={() => setBookingForm({})}
               />
@@ -183,7 +181,7 @@ export default function TripDetail({ info }: { info: AppInfo | null }) {
             {hasGeo && isDesktop && (
               <div>
                 <div className="sticky top-16">
-                  <TripMap trip={trip} focus={focus} onPlaceClick={setPlaceEdit} onBookingClick={(b) => setBookingForm({ booking: b })} className="h-[calc(100vh-6rem)] min-h-[420px]" />
+                  <TripMap trip={trip} overview focus={focus} onPlaceClick={setPlaceEdit} onBookingClick={(b) => setBookingForm({ booking: b })} className="h-[calc(100vh-6rem)] min-h-[420px]" />
                 </div>
               </div>
             )}
