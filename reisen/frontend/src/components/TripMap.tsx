@@ -20,6 +20,8 @@ interface Props {
   trip: TripDetail
   /** Optional: nur diesen Tag hervorheben (YYYY-MM-DD) */
   activeDay?: string | null
+  /** Nur diesen Tag zeigen (alles andere ausblenden) und auf alle Stationen des Tages zoomen */
+  dayOnly?: string | null
   focus?: MapFocus | null
   onPlaceClick?: (p: Place) => void
   onBookingClick?: (b: Booking) => void
@@ -154,7 +156,8 @@ function InvalidateOnResize() {
   return null
 }
 
-export default function TripMap({ trip, activeDay, focus, onPlaceClick, onBookingClick, className, highlightId }: Props) {
+export default function TripMap({ trip, activeDay: activeDayProp, dayOnly, focus, onPlaceClick, onBookingClick, className, highlightId }: Props) {
+  const activeDay = dayOnly ?? activeDayProp
   const [layers, setLayers] = useState<Record<LayerKey, boolean>>({ places: true, stays: true, transport: true })
   const [menu, setMenu] = useState(false)
   const [fitNonce, setFitNonce] = useState(0)
@@ -169,20 +172,41 @@ export default function TripMap({ trip, activeDay, focus, onPlaceClick, onBookin
     const m = new Map<string, Place[]>()
     for (const p of trip.places) {
       if (!has(p)) continue
+      if (dayOnly && p.day !== dayOnly) continue
       const k = p.day ?? ''
       if (!m.has(k)) m.set(k, [])
       m.get(k)!.push(p)
     }
     for (const list of m.values()) list.sort((a, b) => a.sort_order - b.sort_order)
     return m
-  }, [trip.places])
+  }, [trip.places, dayOnly])
 
-  const stays = trip.bookings.filter((b) => STAY_TYPES.has(b.type) && has(b.to_location) && b.status !== 'cancelled')
-  const routes = trip.bookings.filter((b) => !STAY_TYPES.has(b.type) && has(b.from_location) && has(b.to_location) && b.status !== 'cancelled')
+  const day10 = (v: string | null) => (v ? v.slice(0, 10) : '')
+  // Im Tagesmodus: nur was zu diesem Tag gehört
+  const relevantStay = (b: Booking) => {
+    if (!dayOnly) return true
+    if (b.type === 'lodging') {
+      const s = day10(b.start_at)
+      const e = day10(b.end_at) || s
+      // Übernachtung dieser Nacht oder Check-out an diesem Morgen
+      return (s <= dayOnly && dayOnly < e) || e === dayOnly
+    }
+    return day10(b.start_at) === dayOnly
+  }
+  const relevantRoute = (b: Booking) => !dayOnly || day10(b.start_at) === dayOnly || day10(b.end_at) === dayOnly
+  const stays = trip.bookings.filter((b) => STAY_TYPES.has(b.type) && has(b.to_location) && b.status !== 'cancelled' && relevantStay(b))
+  const routes = trip.bookings.filter((b) => !STAY_TYPES.has(b.type) && has(b.from_location) && has(b.to_location) && b.status !== 'cancelled' && relevantRoute(b))
 
   // Bereich für die Ansicht
   const fitPoints = useMemo(() => {
     const pts: [number, number][] = []
+    if (dayOnly) {
+      // Alle Stationen des Tages: Orte, Unterkünfte/Termine und Start/Ziel der Fahrten
+      for (const list of placesByDay.values()) for (const p of list) pts.push([p.lat!, p.lon!])
+      for (const b of stays) pts.push([b.to_location!.lat!, b.to_location!.lon!])
+      for (const b of routes) pts.push([b.from_location!.lat!, b.from_location!.lon!], [b.to_location!.lat!, b.to_location!.lon!])
+      return pts
+    }
     if (activeDay) {
       for (const p of placesByDay.get(activeDay) ?? []) pts.push([p.lat!, p.lon!])
     }
@@ -194,10 +218,10 @@ export default function TripMap({ trip, activeDay, focus, onPlaceClick, onBookin
       if (!pts.length) for (const d of trip.destinations) if (has(d)) pts.push([d.lat, d.lon])
     }
     return pts
-  }, [activeDay, placesByDay, stays, routes, trip.destinations])
+  }, [activeDay, dayOnly, placesByDay, stays, routes, trip.destinations])
 
-  const fitKey = `${trip.id}|${activeDay ?? ''}|${fitPoints.length}|${fitNonce}`
-  const dimOther = (d: string | null) => !!activeDay && d !== activeDay
+  const fitKey = `${trip.id}|${activeDay ?? ''}|${dayOnly ? 'only' : ''}|${fitPoints.length}|${fitNonce}`
+  const dimOther = (d: string | null) => !dayOnly && !!activeDay && d !== activeDay
 
   return (
     <div className={cls('relative isolate overflow-hidden rounded-2xl ring-1 ring-slate-900/10 dark:ring-white/10', className)}>
@@ -259,7 +283,7 @@ export default function TripMap({ trip, activeDay, focus, onPlaceClick, onBookin
             <Marker
               key={b.id}
               position={[b.to_location!.lat!, b.to_location!.lon!]}
-              icon={bookingIcon(b, !!activeDay && b.type !== 'lodging' && b.start_at?.slice(0, 10) !== activeDay)}
+              icon={bookingIcon(b, !dayOnly && !!activeDay && b.type !== 'lodging' && b.start_at?.slice(0, 10) !== activeDay)}
               eventHandlers={{ click: () => onBookingClick?.(b) }}
               zIndexOffset={-100}
             >
@@ -311,7 +335,7 @@ export default function TripMap({ trip, activeDay, focus, onPlaceClick, onBookin
       </div>
 
       {/* Legende der Tage */}
-      {days.length > 1 && trip.places.some((p) => p.day) && (
+      {!dayOnly && days.length > 1 && trip.places.some((p) => p.day) && (
         <div className="pointer-events-none absolute bottom-6 left-3 z-[500] flex max-w-[70%] flex-wrap gap-1">
           {days.map((d, i) =>
             placesByDay.has(d) ? (

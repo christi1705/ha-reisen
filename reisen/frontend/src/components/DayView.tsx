@@ -64,7 +64,7 @@ export default function DayView({ trip, day, onDay, onOpen, onOpenPlace, onPrevi
   const dueTasks = trip.tasks.filter((t) => !t.done && t.due_date === day)
   const hasGeo = dayPlaces.some((p) => p.lat != null) || dayBookings.some((b) => b.to_location?.lat != null || b.from_location?.lat != null) || !!lodging?.to_location?.lat
 
-  const map = <TripMap trip={trip} activeDay={day} focus={focus} onPlaceClick={onOpenPlace} onBookingClick={onOpen} className={isDesktop ? 'h-[calc(100vh-6rem)] min-h-[420px]' : 'h-64'} />
+  const map = <TripMap trip={trip} dayOnly={day} focus={focus} onPlaceClick={onOpenPlace} onBookingClick={onOpen} className={isDesktop ? 'h-[calc(100vh-6rem)] min-h-[420px]' : 'h-64'} />
 
   return (
     <div>

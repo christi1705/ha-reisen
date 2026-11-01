@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.4.1
+- Tagesansicht: Karte zeigt nur noch, was zu diesem Tag gehört (Orte, Übernachtung, Termine, Fahrten des Tages), und zoomt auf alle Stationen des Tages
+
 ## 0.4.0 – Reisende, Kosten, Tagesansicht
 - **Reisende** pro Reise (freie Namen) und pro Buchung „Für wen“ (Standard: alle)
 - Neuer Reiter **Kosten**: Gesamt, gebucht vs. noch offen, **pro Person**, nach Kategorie, Einzelposten; Buchungen ohne Preis werden markiert
