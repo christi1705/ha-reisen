@@ -1,0 +1,168 @@
+// API-Zugriff – immer relative Pfade, damit HA Ingress funktioniert.
+
+export type BookingType =
+  | 'flight' | 'train' | 'bus' | 'boat' | 'car' | 'taxi' | 'rental_car' | 'bike'
+  | 'lodging' | 'restaurant' | 'activity'
+export type BookingStatus = 'idea' | 'booked' | 'confirmed' | 'cancelled'
+
+export interface Location {
+  name: string
+  lat?: number | null
+  lon?: number | null
+  ref?: string | null
+  address?: string | null
+}
+
+export interface Destination {
+  name: string
+  lat?: number | null
+  lon?: number | null
+  country_code?: string | null
+}
+
+export interface Attachment {
+  id: string
+  trip_id: string
+  booking_id: string | null
+  filename: string
+  mime: string
+  size: number
+  url: string
+  uploaded_by: string | null
+  uploaded_at: string
+}
+
+export interface Booking {
+  id: string
+  trip_id: string
+  type: BookingType
+  title: string
+  provider: string | null
+  confirmation_code: string | null
+  status: BookingStatus
+  start_at: string | null
+  start_tz: string | null
+  end_at: string | null
+  end_tz: string | null
+  start_utc: string | null
+  end_utc: string | null
+  from_location: Location | null
+  to_location: Location | null
+  cost: number | null
+  cost_currency: string | null
+  details: Record<string, string>
+  notes: string | null
+  attachments: Attachment[]
+}
+
+export interface Trip {
+  id: string
+  title: string
+  description: string | null
+  start_date: string
+  end_date: string
+  destinations: Destination[]
+  currency: string
+  budget: number | null
+  archived: boolean
+  cover_url: string | null
+  status: 'upcoming' | 'running' | 'past'
+  days: number
+  booking_count: number
+  attachment_count: number
+  total_cost: number
+  next_booking: { id: string; type: BookingType; title: string; start_at: string | null; start_tz: string | null } | null
+  created_by: string | null
+}
+
+export interface TripDetail extends Trip {
+  bookings: Booking[]
+  attachments: Attachment[]
+}
+
+export interface Airport {
+  iata: string
+  icao: string
+  name: string
+  city: string
+  country: string
+  lat: number
+  lon: number
+  tz: string
+}
+
+export interface Airline {
+  iata: string
+  icao: string
+  name: string
+  country: string
+}
+
+export interface AppInfo {
+  user: string | null
+  default_currency: string
+  default_timezone: string
+  version: string
+}
+
+export type TripInput = Pick<Trip, 'title' | 'start_date' | 'end_date' | 'destinations' | 'currency'> & {
+  description?: string | null
+  budget?: number | null
+}
+export type BookingInput = Omit<Booking, 'id' | 'trip_id' | 'start_utc' | 'end_utc' | 'attachments'>
+
+async function req<T>(method: string, url: string, body?: unknown): Promise<T> {
+  const init: RequestInit = { method, headers: {} }
+  if (body instanceof FormData) {
+    init.body = body
+  } else if (body !== undefined) {
+    init.body = JSON.stringify(body)
+    ;(init.headers as Record<string, string>)['Content-Type'] = 'application/json'
+  }
+  const res = await fetch(url, init)
+  if (!res.ok) {
+    let msg = `${res.status} ${res.statusText}`
+    try {
+      const j = await res.json()
+      if (typeof j.detail === 'string') msg = j.detail
+      else if (Array.isArray(j.detail)) msg = j.detail.map((d: { msg: string }) => d.msg).join(', ')
+    } catch { /* ignore */ }
+    throw new Error(msg)
+  }
+  if (res.status === 204) return undefined as T
+  return res.json()
+}
+
+export const api = {
+  info: () => req<AppInfo>('GET', 'api/info'),
+  trips: () => req<Trip[]>('GET', 'api/trips'),
+  trip: (id: string) => req<TripDetail>('GET', `api/trips/${id}`),
+  createTrip: (d: TripInput) => req<TripDetail>('POST', 'api/trips', d),
+  updateTrip: (id: string, d: Partial<TripInput> & { archived?: boolean }) => req<TripDetail>('PATCH', `api/trips/${id}`, d),
+  deleteTrip: (id: string) => req<void>('DELETE', `api/trips/${id}`),
+  uploadCover: (id: string, file: File) => {
+    const fd = new FormData()
+    fd.append('file', file)
+    return req<TripDetail>('POST', `api/trips/${id}/cover`, fd)
+  },
+  deleteCover: (id: string) => req<TripDetail>('DELETE', `api/trips/${id}/cover`),
+
+  createBooking: (tripId: string, d: BookingInput) => req<Booking>('POST', `api/trips/${tripId}/bookings`, d),
+  updateBooking: (id: string, d: Partial<BookingInput>) => req<Booking>('PATCH', `api/bookings/${id}`, d),
+  deleteBooking: (id: string, withFiles = false) =>
+    req<void>('DELETE', `api/bookings/${id}?delete_attachments=${withFiles}`),
+
+  upload: (tripId: string, files: File[], bookingId?: string | null) => {
+    const fd = new FormData()
+    fd.append('trip_id', tripId)
+    if (bookingId) fd.append('booking_id', bookingId)
+    files.forEach((f) => fd.append('files', f))
+    return req<Attachment[]>('POST', 'api/attachments', fd)
+  },
+  updateAttachment: (id: string, d: { filename?: string; booking_id?: string | null }) =>
+    req<Attachment>('PATCH', `api/attachments/${id}`, d),
+  deleteAttachment: (id: string) => req<void>('DELETE', `api/attachments/${id}`),
+
+  airports: (q: string) => req<Airport[]>('GET', `api/ref/airports?q=${encodeURIComponent(q)}&limit=8`),
+  airlines: (q: string) => req<Airline[]>('GET', `api/ref/airlines?q=${encodeURIComponent(q)}&limit=8`),
+}

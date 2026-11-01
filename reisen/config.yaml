@@ -1,0 +1,20 @@
+name: Reisen
+version: "0.1.0"
+slug: reisen
+description: Persönliche Reiseorganisation – Reisen, Buchungen und Dokumente an einem Ort
+url: https://github.com/christi1705/ha-reisen
+arch:
+  - amd64
+  - aarch64
+init: false
+startup: application
+boot: auto
+ingress: true
+ingress_port: 8099
+panel_icon: mdi:airplane
+panel_title: Reisen
+backup: hot
+options:
+  default_currency: EUR
+schema:
+  default_currency: match(^[A-Z]{3}$)
