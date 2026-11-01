@@ -8,18 +8,13 @@ interface Props {
   onChanged: () => void
 }
 
-/** Typische Aufgaben vor einer Reise, als Vorschläge zum Antippen */
+/** Typische Aufgaben vor einer Reise, als Vorschläge zum Antippen (max. 5) */
 const SUGGESTIONS: { title: string; daysBefore?: number }[] = [
-  { title: 'Reisepass / Ausweis prüfen', daysBefore: 42 },
-  { title: 'Auslandskrankenversicherung prüfen', daysBefore: 14 },
-  { title: 'Online-Check-in', daysBefore: 1 },
-  { title: 'Haustier- / Pflanzenbetreuung organisieren', daysBefore: 14 },
-  { title: 'Nachbarn Bescheid geben', daysBefore: 3 },
-  { title: 'Bargeld & Kreditkarte', daysBefore: 3 },
-  { title: 'Reiseadapter einpacken', daysBefore: 1 },
-  { title: 'Offline-Karten laden', daysBefore: 2 },
-  { title: 'Urlaubsmodus in Home Assistant', daysBefore: 0 },
-  { title: 'Impfungen / Einreisebestimmungen prüfen', daysBefore: 42 },
+  { title: 'Flug buchen' },
+  { title: 'Hotel buchen' },
+  { title: 'Mietwagen buchen' },
+  { title: 'Parkplatz buchen' },
+  { title: 'Bahnanreise buchen' },
 ]
 
 function shiftDate(day: string, delta: number) {

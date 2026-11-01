@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.2.1
+- Vorschläge für Aufgaben auf 5 reduziert: Flug, Hotel, Mietwagen, Parkplatz, Bahnanreise buchen
+
 ## 0.2.0 – Aufgaben
 - Neuer Reiter **Aufgaben** pro Reise: abhaken, Fälligkeitsdatum, Notiz, bearbeiten
 - Schnellauswahl für Fälligkeit („Heute“, „1 Woche vorher“, „Tag vor Abreise“)
