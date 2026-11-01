@@ -31,7 +31,7 @@ interface Props {
 type LayerKey = 'places' | 'stays' | 'transport'
 const LAYER_LABEL: Record<LayerKey, string> = { places: 'Orte', stays: 'Unterkünfte & Aktivitäten', transport: 'Verkehr' }
 const OSM_FALLBACK: TileConfig = {
-  url: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+  url: 'api/tiles/{z}/{x}/{y}.png',
   attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>-Mitwirkende',
   subdomains: '',
   max_zoom: 19,

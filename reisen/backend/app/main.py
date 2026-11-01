@@ -7,7 +7,7 @@ from fastapi import FastAPI, HTTPException
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
-from . import api, geo, ref
+from . import api, geo, ref, tiles
 from .config import STATIC_DIR
 from .db import init_db
 
@@ -18,13 +18,15 @@ mimetypes.add_type("text/javascript", ".mjs")
 @asynccontextmanager
 async def lifespan(_app: FastAPI):
     init_db()
+    tiles.prune_cache()
     yield
 
 
-app = FastAPI(title="Reisen", version="0.3.1", lifespan=lifespan, docs_url="/api/docs", openapi_url="/api/openapi.json")
+app = FastAPI(title="Reisen", version="0.3.2", lifespan=lifespan, docs_url="/api/docs", openapi_url="/api/openapi.json")
 app.include_router(api.router)
 app.include_router(ref.router)
 app.include_router(geo.router)
+app.include_router(tiles.router)
 
 
 @app.get("/api/health")

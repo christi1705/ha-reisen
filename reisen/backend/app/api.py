@@ -219,7 +219,8 @@ def info(request: Request):
     else:
         # Ohne CARTO-Schlüssel: Standard-Karte von OpenStreetMap (kein Schlüssel nötig)
         tiles = {
-            "url": "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
+            # Über das eigene Backend (Cache + User-Agent), da OSM Anfragen ohne Referer blockiert
+            "url": "api/tiles/{z}/{x}/{y}.png",
             "attribution": '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>-Mitwirkende',
             "subdomains": "",
             "max_zoom": 19,
@@ -230,7 +231,7 @@ def info(request: Request):
         "user": current_user(request),
         "default_currency": DEFAULT_CURRENCY,
         "default_timezone": DEFAULT_TIMEZONE,
-        "version": "0.3.1",
+        "version": "0.3.2",
     }
 
 

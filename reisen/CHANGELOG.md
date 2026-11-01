@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.3.2
+- Fix: OpenStreetMap-Karte wurde blockiert („Access blocked“), weil HA keinen Referer mitsendet.
+  Kacheln werden jetzt über die App geladen und 30 Tage zwischengespeichert (gemäß OSM Tile Usage Policy).
+
 ## 0.3.1
 - Karte funktioniert ohne Schlüssel: Standard-Karte von OpenStreetMap
 - Neue Option `carto_api_key` für die Kartenansicht CARTO Voyager (CARTO verlangt seit 09/2026 einen Schlüssel)
