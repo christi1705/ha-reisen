@@ -15,13 +15,17 @@ from sqlmodel import Session, select
 
 from .config import DEFAULT_TIMEZONE, FILES_DIR, MAX_UPLOAD_MB
 from .db import get_session
-from .models import Attachment, Booking, Task, Trip
+from .models import Attachment, Booking, Place, Task, Trip
 from .schemas import (
     AttachmentOut,
     BookingIn,
     BookingOut,
     BookingPatch,
     NextBooking,
+    PlaceIn,
+    PlaceMove,
+    PlaceOut,
+    PlacePatch,
     TaskIn,
     TaskOut,
     TaskPatch,
@@ -99,6 +103,10 @@ def _sort_key(b: BookingOut):
     return (b.start_utc is None, b.start_utc or datetime.max.replace(tzinfo=timezone.utc), b.title)
 
 
+def place_sort_key(p: Place):
+    return (p.day is None, p.day or date.max, p.sort_order, p.created_at)
+
+
 def task_sort_key(t: Task):
     return (t.done, t.due_date is None, t.due_date or date.max, t.sort_order, t.created_at)
 
@@ -106,6 +114,7 @@ def task_sort_key(t: Task):
 def trip_out(s: Session, t: Trip, detail: bool = False):
     bookings = s.exec(select(Booking).where(Booking.trip_id == t.id)).all()
     tasks = s.exec(select(Task).where(Task.trip_id == t.id)).all()
+    places = s.exec(select(Place).where(Place.trip_id == t.id)).all()
     today = date.today()
     atts = s.exec(select(Attachment).where(Attachment.trip_id == t.id)).all()
     b_out = sorted((booking_out(b, atts) for b in bookings), key=_sort_key)
@@ -134,6 +143,7 @@ def trip_out(s: Session, t: Trip, detail: bool = False):
         booking_count=len(bookings),
         attachment_count=len(atts),
         total_cost=round(total, 2),
+        place_count=len(places),
         open_tasks=sum(1 for x in tasks if not x.done),
         overdue_tasks=sum(1 for x in tasks if not x.done and x.due_date and x.due_date < today),
         next_booking=NextBooking(
@@ -152,6 +162,7 @@ def trip_out(s: Session, t: Trip, detail: bool = False):
         bookings=b_out,
         attachments=[att_out(a) for a in atts],
         tasks=[TaskOut(**x.model_dump()) for x in sorted(tasks, key=task_sort_key)],
+        places=[PlaceOut(**p.model_dump()) for p in sorted(places, key=place_sort_key)],
     )
 
 
@@ -201,7 +212,7 @@ def info(request: Request):
         "user": current_user(request),
         "default_currency": DEFAULT_CURRENCY,
         "default_timezone": DEFAULT_TIMEZONE,
-        "version": "0.2.0",
+        "version": "0.3.0",
     }
 
 
@@ -253,6 +264,8 @@ def delete_trip(trip_id: str, s: Session = Depends(get_session)):
     for a in s.exec(select(Attachment).where(Attachment.trip_id == t.id)).all():
         s.delete(a)
     for x in s.exec(select(Task).where(Task.trip_id == t.id)).all():
+        s.delete(x)
+    for x in s.exec(select(Place).where(Place.trip_id == t.id)).all():
         s.delete(x)
     for b in s.exec(select(Booking).where(Booking.trip_id == t.id)).all():
         s.delete(b)
@@ -522,3 +535,67 @@ def clear_done_tasks(trip_id: str, s: Session = Depends(get_session)):
     for x in s.exec(select(Task).where(Task.trip_id == trip_id, Task.done == True)).all():  # noqa: E712
         s.delete(x)
     s.commit()
+
+
+# ---------------------------------------------------------------- Orte
+def get_place_or_404(s: Session, place_id: str) -> Place:
+    p = s.get(Place, place_id)
+    if not p:
+        raise HTTPException(404, "Ort nicht gefunden")
+    return p
+
+
+def _next_order(s: Session, trip_id: str, day: Optional[date]) -> int:
+    rows = s.exec(select(Place).where(Place.trip_id == trip_id, Place.day == day)).all()
+    return max((p.sort_order for p in rows), default=-1) + 1
+
+
+@router.get("/trips/{trip_id}/places", response_model=list[PlaceOut])
+def list_places(trip_id: str, s: Session = Depends(get_session)):
+    get_trip_or_404(s, trip_id)
+    return sorted(s.exec(select(Place).where(Place.trip_id == trip_id)).all(), key=place_sort_key)
+
+
+@router.post("/trips/{trip_id}/places", response_model=PlaceOut, status_code=201)
+def create_place(trip_id: str, data: PlaceIn, s: Session = Depends(get_session)):
+    t = get_trip_or_404(s, trip_id)
+    p = Place(trip_id=t.id, **data.model_dump(), sort_order=_next_order(s, t.id, data.day))
+    s.add(p)
+    s.commit()
+    s.refresh(p)
+    return p
+
+
+@router.patch("/places/{place_id}", response_model=PlaceOut)
+def update_place(place_id: str, data: PlacePatch, s: Session = Depends(get_session)):
+    p = get_place_or_404(s, place_id)
+    changes = data.model_dump(exclude_unset=True)
+    if "day" in changes and changes["day"] != p.day:
+        p.sort_order = _next_order(s, p.trip_id, changes["day"])
+    for k, v in changes.items():
+        setattr(p, k, v)
+    s.add(p)
+    s.commit()
+    s.refresh(p)
+    return p
+
+
+@router.delete("/places/{place_id}", status_code=204)
+def delete_place(place_id: str, s: Session = Depends(get_session)):
+    s.delete(get_place_or_404(s, place_id))
+    s.commit()
+
+
+@router.post("/trips/{trip_id}/places/arrange", response_model=list[PlaceOut])
+def arrange_places(trip_id: str, moves: list[PlaceMove], s: Session = Depends(get_session)):
+    """Setzt Tag und Reihenfolge mehrerer Orte auf einmal (Drag & Drop)."""
+    get_trip_or_404(s, trip_id)
+    places = {p.id: p for p in s.exec(select(Place).where(Place.trip_id == trip_id)).all()}
+    for m in moves:
+        p = places.get(m.id)
+        if p:
+            p.day = m.day
+            p.sort_order = m.sort_order
+            s.add(p)
+    s.commit()
+    return sorted(places.values(), key=place_sort_key)

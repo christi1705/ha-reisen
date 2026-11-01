@@ -5,7 +5,7 @@ from typing import Any, Optional
 
 from pydantic import BaseModel, Field, field_validator, model_validator
 
-from .models import BookingStatus, BookingType
+from .models import BookingStatus, BookingType, PlaceCategory
 
 
 class Location(BaseModel):
@@ -73,6 +73,56 @@ class NextBooking(BaseModel):
     start_tz: Optional[str]
 
 
+class PlaceIn(BaseModel):
+    name: str = Field(min_length=1, max_length=300)
+    address: Optional[str] = None
+    lat: Optional[float] = None
+    lon: Optional[float] = None
+    category: PlaceCategory = "other"
+    source_ref: Optional[str] = None
+    day: Optional[date] = None
+    time: Optional[str] = Field(default=None, pattern=r"^([01]\d|2[0-3]):[0-5]\d$")
+    duration_min: Optional[int] = None
+    url: Optional[str] = None
+    notes: Optional[str] = None
+
+
+class PlacePatch(BaseModel):
+    name: Optional[str] = Field(default=None, min_length=1, max_length=300)
+    address: Optional[str] = None
+    lat: Optional[float] = None
+    lon: Optional[float] = None
+    category: Optional[PlaceCategory] = None
+    day: Optional[date] = None
+    time: Optional[str] = Field(default=None, pattern=r"^([01]\d|2[0-3]):[0-5]\d$")
+    duration_min: Optional[int] = None
+    url: Optional[str] = None
+    notes: Optional[str] = None
+
+
+class PlaceOut(BaseModel):
+    id: str
+    trip_id: str
+    name: str
+    address: Optional[str]
+    lat: Optional[float]
+    lon: Optional[float]
+    category: str
+    source_ref: Optional[str]
+    day: Optional[date]
+    sort_order: int
+    time: Optional[str]
+    duration_min: Optional[int]
+    url: Optional[str]
+    notes: Optional[str]
+
+
+class PlaceMove(BaseModel):
+    id: str
+    day: Optional[date] = None
+    sort_order: int
+
+
 class TaskIn(BaseModel):
     title: str = Field(min_length=1, max_length=300)
     due_date: Optional[date] = None
@@ -115,6 +165,7 @@ class TripOut(BaseModel):
     booking_count: int
     attachment_count: int
     total_cost: float
+    place_count: int = 0
     open_tasks: int = 0
     overdue_tasks: int = 0
     next_booking: Optional[NextBooking] = None
@@ -211,3 +262,4 @@ class TripDetailOut(TripOut):
     bookings: list[BookingOut]
     attachments: list[AttachmentOut]
     tasks: list[TaskOut]
+    places: list[PlaceOut]

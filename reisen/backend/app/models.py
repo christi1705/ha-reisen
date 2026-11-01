@@ -85,6 +85,28 @@ class Attachment(SQLModel, table=True):
     uploaded_at: datetime = Field(default_factory=_now)
 
 
+PLACE_CATEGORIES = ("sight", "food", "nature", "shopping", "nightlife", "lodging", "transport", "other")
+PlaceCategory = Literal["sight", "food", "nature", "shopping", "nightlife", "lodging", "transport", "other"]
+
+
+class Place(SQLModel, table=True):
+    id: str = Field(default_factory=_uuid, primary_key=True)
+    trip_id: str = Field(foreign_key="trip.id", index=True)
+    name: str
+    address: Optional[str] = None
+    lat: Optional[float] = None
+    lon: Optional[float] = None
+    category: str = "other"
+    source_ref: Optional[str] = None
+    day: Optional[date] = None  # None = ungeplant
+    sort_order: int = 0
+    time: Optional[str] = None  # "HH:MM"
+    duration_min: Optional[int] = None
+    url: Optional[str] = None
+    notes: Optional[str] = None
+    created_at: datetime = Field(default_factory=_now)
+
+
 class Task(SQLModel, table=True):
     id: str = Field(default_factory=_uuid, primary_key=True)
     trip_id: str = Field(foreign_key="trip.id", index=True)

@@ -71,6 +71,7 @@ export interface Trip {
   booking_count: number
   attachment_count: number
   total_cost: number
+  place_count: number
   open_tasks: number
   overdue_tasks: number
   next_booking: { id: string; type: BookingType; title: string; start_at: string | null; start_tz: string | null } | null
@@ -90,10 +91,43 @@ export interface Task {
   done_at: string | null
 }
 
+export type PlaceCategory = 'sight' | 'food' | 'nature' | 'shopping' | 'nightlife' | 'lodging' | 'transport' | 'other'
+
+export interface Place {
+  id: string
+  trip_id: string
+  name: string
+  address: string | null
+  lat: number | null
+  lon: number | null
+  category: PlaceCategory
+  source_ref: string | null
+  day: string | null
+  sort_order: number
+  time: string | null
+  duration_min: number | null
+  url: string | null
+  notes: string | null
+}
+
+export type PlaceInput = Partial<Omit<Place, 'id' | 'trip_id' | 'sort_order'>> & { name?: string }
+
+export interface GeoResult {
+  name: string
+  address: string
+  lat: number
+  lon: number
+  category: PlaceCategory
+  kind: string
+  country_code: string | null
+  source_ref: string
+}
+
 export interface TripDetail extends Trip {
   bookings: Booking[]
   attachments: Attachment[]
   tasks: Task[]
+  places: Place[]
 }
 
 export interface Airport {
@@ -184,6 +218,14 @@ export const api = {
   updateTask: (id: string, d: Partial<Pick<Task, 'title' | 'done' | 'due_date' | 'notes'>>) => req<Task>('PATCH', `api/tasks/${id}`, d),
   deleteTask: (id: string) => req<void>('DELETE', `api/tasks/${id}`),
   clearDoneTasks: (tripId: string) => req<void>('POST', `api/trips/${tripId}/tasks/clear-done`),
+
+  createPlace: (tripId: string, d: PlaceInput & { name: string }) => req<Place>('POST', `api/trips/${tripId}/places`, d),
+  updatePlace: (id: string, d: PlaceInput) => req<Place>('PATCH', `api/places/${id}`, d),
+  deletePlace: (id: string) => req<void>('DELETE', `api/places/${id}`),
+  arrangePlaces: (tripId: string, moves: { id: string; day: string | null; sort_order: number }[]) =>
+    req<Place[]>('POST', `api/trips/${tripId}/places/arrange`, moves),
+  searchPlaces: (q: string, near?: { lat: number; lon: number } | null) =>
+    req<GeoResult[]>('GET', `api/search/places?q=${encodeURIComponent(q)}${near ? `&lat=${near.lat}&lon=${near.lon}` : ''}`),
 
   airports: (q: string) => req<Airport[]>('GET', `api/ref/airports?q=${encodeURIComponent(q)}&limit=8`),
   airlines: (q: string) => req<Airline[]>('GET', `api/ref/airlines?q=${encodeURIComponent(q)}&limit=8`),

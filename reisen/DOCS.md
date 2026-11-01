@@ -3,13 +3,19 @@
 Persönliche Reiseorganisation direkt in Home Assistant. Die App erscheint als **Reisen** in der Seitenleiste
 und ist auch in der HA-App auf dem Handy nutzbar.
 
-## Funktionen (Version 0.2)
+## Funktionen (Version 0.3)
 - Reiseübersicht mit Countdown, Titelbild, Zielen und Budget
 - Buchungen für alle gängigen Verkehrsmittel, Unterkünfte, Restaurants und Aktivitäten
 - Flughafen- und Airline-Suche mit automatischer Zeitzone
 - Ablaufansicht: alles chronologisch nach Reisetagen
 - Dokumente: PDFs und Bilder hochladen und direkt ansehen
 - Aufgaben pro Reise mit Fälligkeit und Vorschlägen
+- Karte mit allen Orten und Buchungen, Ortssuche über OpenStreetMap
+- Tagesplanung: Orte per Drag & Drop auf Reisetage verteilen
+
+## Internet
+Kartenkacheln (CARTO) und Ortssuche (Photon/Nominatim von OpenStreetMap) benötigen Internet.
+Die Suche läuft über die App (max. 1 Anfrage pro Sekunde, mit Zwischenspeicher).
 
 ## Optionen
 | Option | Beschreibung |

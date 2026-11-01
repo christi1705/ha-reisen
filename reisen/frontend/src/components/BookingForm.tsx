@@ -1,8 +1,9 @@
-import { ArrowLeft, ArrowRightLeft, Paperclip, Trash2 } from 'lucide-react'
+import { ArrowLeft, ArrowRightLeft, MapPin, Paperclip, Trash2 } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { api, type Attachment, type Booking, type BookingInput, type BookingStatus, type BookingType, type Location, type TripDetail } from '../api'
 import { BOOKING_TYPES, STATUS, TYPE_ORDER } from '../bookingTypes'
 import { browserTz, cls, fmtSize } from '../util'
+import { PlaceSearch, tripCenter } from '../places'
 import { AirlineInput, AirportInput } from './Autocomplete'
 import Modal from './Modal'
 
@@ -54,6 +55,7 @@ export default function BookingForm({ trip, booking, initialType, onClose, onSav
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
 
+  const near = tripCenter([...trip.places, ...trip.destinations])
   const setDetail = (k: string, v: string) => setDetails((d) => ({ ...d, [k]: v }))
 
   const suggestedTitle = useMemo(() => {
@@ -218,7 +220,7 @@ export default function BookingForm({ trip, booking, initialType, onClose, onSav
                   onSelect={(a) => { setFrom({ name: `${a.city || a.name} (${a.iata})`, lat: a.lat, lon: a.lon, ref: a.iata }); if (a.tz) setStartTz(a.tz) }}
                 />
               ) : (
-                <input className="input" value={from.name} onChange={(e) => setFrom({ ...from, name: e.target.value })} placeholder="Ort / Bahnhof / Adresse" />
+                <PlaceSearch value={from.name} near={near} placeholder="Ort / Bahnhof / Adresse" onChange={(v) => setFrom({ name: v })} onSelect={(r) => setFrom({ name: r.name, lat: r.lat, lon: r.lon, address: r.address })} />
               )}
             </div>
             <button className="icon-btn mb-0.5" onClick={swap} title="Tauschen" type="button"><ArrowRightLeft size={16} /></button>
@@ -231,7 +233,7 @@ export default function BookingForm({ trip, booking, initialType, onClose, onSav
                   onSelect={(a) => { setTo({ name: `${a.city || a.name} (${a.iata})`, lat: a.lat, lon: a.lon, ref: a.iata }); if (a.tz) setEndTz(a.tz) }}
                 />
               ) : (
-                <input className="input" value={to.name} onChange={(e) => setTo({ ...to, name: e.target.value })} placeholder="Ort / Bahnhof / Adresse" />
+                <PlaceSearch value={to.name} near={near} placeholder="Ort / Bahnhof / Adresse" onChange={(v) => setTo({ name: v })} onSelect={(r) => setTo({ name: r.name, lat: r.lat, lon: r.lon, address: r.address })} />
               )}
             </div>
           </div>
@@ -239,7 +241,16 @@ export default function BookingForm({ trip, booking, initialType, onClose, onSav
           <div className="grid gap-3 sm:grid-cols-2">
             <div>
               <label className="label">Name</label>
-              <input className="input" value={to.name} onChange={(e) => setTo({ ...to, name: e.target.value })} placeholder={type === 'lodging' ? 'Hotel / Unterkunft' : 'Name'} />
+              <PlaceSearch
+                value={to.name}
+                near={near}
+                placeholder={type === 'lodging' ? 'Hotel / Unterkunft suchen' : 'Name oder Ort suchen'}
+                onChange={(v) => setTo({ ...to, name: v })}
+                onSelect={(r) => setTo({ name: r.name, address: r.address, lat: r.lat, lon: r.lon })}
+              />
+              <p className="mt-1 flex items-center gap-1 px-1 text-xs text-slate-400">
+                <MapPin size={11} /> {to.lat != null ? 'Auf der Karte' : 'Aus der Suche wählen, damit es auf der Karte erscheint'}
+              </p>
             </div>
             <div>
               <label className="label">{cfg.locationLabel}</label>

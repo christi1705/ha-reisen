@@ -12,11 +12,18 @@ interface Props<T> {
   placeholder?: string
   minChars?: number
   autoFocus?: boolean
+  delay?: number
+  /** Enter ohne Auswahl aus der Liste */
+  onSubmitText?: (text: string) => void
+  className?: string
+  icon?: ReactNode
 }
 
 export function Autocomplete<T>({
-  value, onChange, onSelect, search, render, itemKey, placeholder, minChars = 2, autoFocus,
+  value, onChange, onSelect, search, render, itemKey, placeholder, minChars = 2, autoFocus, delay = 150, onSubmitText,
+  className, icon,
 }: Props<T>) {
+  const [loading, setLoading] = useState(false)
   const [items, setItems] = useState<T[]>([])
   const [open, setOpen] = useState(false)
   const [active, setActive] = useState(0)
@@ -35,6 +42,7 @@ export function Autocomplete<T>({
     }
     const n = ++seq.current
     const t = setTimeout(() => {
+      setLoading(true)
       search(q)
         .then((r) => {
           if (n === seq.current) {
@@ -43,10 +51,11 @@ export function Autocomplete<T>({
             setOpen(true)
           }
         })
-        .catch(() => setItems([]))
-    }, 150)
+        .catch(() => n === seq.current && setItems([]))
+        .finally(() => n === seq.current && setLoading(false))
+    }, delay)
     return () => clearTimeout(t)
-  }, [value, minChars, search])
+  }, [value, minChars, search, delay])
 
   const pick = (it: T) => {
     skip.current = true
@@ -56,8 +65,10 @@ export function Autocomplete<T>({
 
   return (
     <div className="relative">
+      {icon && <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">{icon}</span>}
+      {loading && <span className="absolute right-3 top-1/2 h-3 w-3 -translate-y-1/2 animate-spin rounded-full border-2 border-slate-300 border-t-brand-600" />}
       <input
-        className="input"
+        className={cls('input', icon ? 'pl-9' : '', className)}
         value={value}
         placeholder={placeholder}
         autoFocus={autoFocus}
@@ -65,6 +76,13 @@ export function Autocomplete<T>({
         onFocus={() => items.length && setOpen(true)}
         onBlur={() => setTimeout(() => setOpen(false), 150)}
         onKeyDown={(e) => {
+          if (e.key === 'Enter' && onSubmitText && (!open || !items.length)) {
+            e.preventDefault()
+            seq.current++
+            setOpen(false)
+            onSubmitText(value)
+            return
+          }
           if (!open || !items.length) return
           if (e.key === 'ArrowDown') { e.preventDefault(); setActive((a) => Math.min(a + 1, items.length - 1)) }
           if (e.key === 'ArrowUp') { e.preventDefault(); setActive((a) => Math.max(a - 1, 0)) }

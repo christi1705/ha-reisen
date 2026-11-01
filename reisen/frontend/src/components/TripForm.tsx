@@ -2,6 +2,7 @@ import { MapPin, X } from 'lucide-react'
 import { useState } from 'react'
 import { api, type Destination, type Trip, type TripDetail } from '../api'
 import Modal from './Modal'
+import { PlaceSearch } from '../places'
 
 interface Props {
   open: boolean
@@ -93,14 +94,19 @@ export default function TripForm({ open, trip, defaultCurrency, onClose, onSaved
               </span>
             ))}
           </div>
-          <input
-            className="input mt-2"
-            value={destInput}
-            onChange={(e) => setDestInput(e.target.value)}
-            onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ',') { e.preventDefault(); addDest() } }}
-            onBlur={addDest}
-            placeholder="Stadt oder Region, mit Enter hinzufügen"
-          />
+          <div className="mt-2">
+            <PlaceSearch
+              value={destInput}
+              onChange={setDestInput}
+              placeholder="Stadt oder Region suchen"
+              onSelect={(r) => {
+                if (!dests.some((d) => d.name.toLowerCase() === r.name.toLowerCase()))
+                  setDests([...dests, { name: r.name, lat: r.lat, lon: r.lon, country_code: r.country_code }])
+                setDestInput('')
+              }}
+              onSubmitText={() => addDest()}
+            />
+          </div>
         </div>
         <div>
           <label className="label">Beschreibung</label>

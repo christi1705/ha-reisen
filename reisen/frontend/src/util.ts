@@ -1,3 +1,5 @@
+import { useEffect, useState } from 'react'
+
 const LOCALE = 'de-DE'
 
 export const browserTz = () => Intl.DateTimeFormat().resolvedOptions().timeZone || 'Europe/Berlin'
@@ -107,3 +109,17 @@ export function gradientFor(seed: string) {
 }
 
 export const cls = (...xs: (string | false | null | undefined)[]) => xs.filter(Boolean).join(' ')
+
+
+/** true ab Desktop-Breite (Tailwind lg) */
+export function useIsDesktop() {
+  const q = '(min-width: 1024px)'
+  const [v, setV] = useState(() => typeof window !== 'undefined' && window.matchMedia(q).matches)
+  useEffect(() => {
+    const m = window.matchMedia(q)
+    const on = () => setV(m.matches)
+    m.addEventListener('change', on)
+    return () => m.removeEventListener('change', on)
+  }, [])
+  return v
+}
