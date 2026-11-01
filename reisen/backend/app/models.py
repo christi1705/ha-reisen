@@ -23,7 +23,7 @@ BOOKING_TYPES = (
 BookingType = Literal[
     "flight", "train", "bus", "boat", "car", "taxi", "rental_car", "bike", "lodging", "restaurant", "activity"
 ]
-BookingStatus = Literal["idea", "booked", "confirmed", "cancelled"]
+BookingStatus = Literal["idea", "todo", "booked", "confirmed", "cancelled"]
 
 
 def _uuid() -> str:

@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.3.4
+- Neuer Buchungsstatus **Todo** (noch zu buchen), zwischen „Idee“ und „Gebucht“
+
 ## 0.3.3 – Sicherheit
 - Nur noch Anfragen über HA Ingress (mit HA-Login) werden angenommen; direkte Zugriffe aus dem internen Docker-Netz werden abgewiesen
 - Hochgeladene Dateien: nur PDFs und Bilder werden im Browser angezeigt, alles andere (z. B. HTML, SVG) nur als Download

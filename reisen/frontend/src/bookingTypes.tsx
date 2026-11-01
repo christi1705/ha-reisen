@@ -127,6 +127,7 @@ export const TYPE_ORDER: BookingType[] = [
 
 export const STATUS: Record<BookingStatus, { label: string; cls: string }> = {
   idea: { label: 'Idee', cls: 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300' },
+  todo: { label: 'Todo', cls: 'bg-amber-50 text-amber-700 ring-1 ring-amber-200 dark:bg-amber-500/15 dark:text-amber-300 dark:ring-amber-500/30' },
   booked: { label: 'Gebucht', cls: 'bg-blue-50 text-blue-700 dark:bg-blue-500/15 dark:text-blue-300' },
   confirmed: { label: 'Bestätigt', cls: 'bg-emerald-50 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300' },
   cancelled: { label: 'Storniert', cls: 'bg-red-50 text-red-600 line-through dark:bg-red-500/15 dark:text-red-300' },

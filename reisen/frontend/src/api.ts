@@ -3,7 +3,7 @@
 export type BookingType =
   | 'flight' | 'train' | 'bus' | 'boat' | 'car' | 'taxi' | 'rental_car' | 'bike'
   | 'lodging' | 'restaurant' | 'activity'
-export type BookingStatus = 'idea' | 'booked' | 'confirmed' | 'cancelled'
+export type BookingStatus = 'idea' | 'todo' | 'booked' | 'confirmed' | 'cancelled'
 
 export interface Location {
   name: string
