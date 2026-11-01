@@ -91,6 +91,7 @@ export default function BookingCard({ booking: b, role = 'single', showDate, onO
           <span className={cls('chip', st.cls)}>{st.label}</span>
           {b.confirmation_code && <CopyCode code={b.confirmation_code} />}
           {b.provider && b.type !== 'lodging' && <span className="chip bg-slate-50 text-slate-500 dark:bg-slate-800/60">{b.provider}</span>}
+          {b.travelers?.length > 0 && <span className="chip bg-violet-50 text-violet-700 dark:bg-violet-500/15 dark:text-violet-300">nur {b.travelers.join(', ')}</span>}
           {b.details.seat && <span className="chip bg-slate-50 text-slate-500 dark:bg-slate-800/60">Sitz {b.details.seat}</span>}
           {duration && role !== 'end' && <span className="chip bg-slate-50 text-slate-500 sm:hidden dark:bg-slate-800/60">{duration}</span>}
           {b.cost != null && role !== 'end' && <span className="chip ml-auto bg-transparent px-0 text-slate-500">{fmtMoney(b.cost, b.cost_currency ?? 'EUR')}</span>}

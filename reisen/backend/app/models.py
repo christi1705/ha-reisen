@@ -41,6 +41,7 @@ class Trip(SQLModel, table=True):
     start_date: date
     end_date: date
     destinations: list[dict[str, Any]] = Field(default_factory=list, sa_column=Column(JSON, nullable=False))
+    travelers: list[str] = Field(default_factory=list, sa_column=Column(JSON, nullable=False, server_default="[]"))
     currency: str = "EUR"
     budget: Optional[float] = None
     cover_file: Optional[str] = None
@@ -68,6 +69,8 @@ class Booking(SQLModel, table=True):
     cost: Optional[float] = None
     cost_currency: Optional[str] = None
     details: dict[str, Any] = Field(default_factory=dict, sa_column=Column(JSON, nullable=False))
+    # Für wen gilt die Buchung (Namen aus trip.travelers); leer = alle Reisenden
+    travelers: list[str] = Field(default_factory=list, sa_column=Column(JSON, nullable=False, server_default="[]"))
     notes: Optional[str] = None
     created_at: datetime = Field(default_factory=_now)
     updated_at: datetime = Field(default_factory=_now)

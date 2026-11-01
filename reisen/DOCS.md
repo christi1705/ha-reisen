@@ -12,6 +12,8 @@ und ist auch in der HA-App auf dem Handy nutzbar.
 - Aufgaben pro Reise mit Fälligkeit und Vorschlägen
 - Karte mit allen Orten und Buchungen, Ortssuche über OpenStreetMap
 - Tagesplanung: Orte per Drag & Drop auf Reisetage verteilen
+- Einzeltag-Ansicht mit Karte des Tages
+- Reisende und Kostenauswertung (gesamt, pro Person, nach Kategorie)
 
 ## Internet
 Kartenkacheln (CARTO) und Ortssuche (Photon/Nominatim von OpenStreetMap) benötigen Internet.

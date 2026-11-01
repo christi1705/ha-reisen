@@ -51,6 +51,8 @@ export interface Booking {
   cost: number | null
   cost_currency: string | null
   details: Record<string, string>
+  /** Für wen die Buchung gilt; leer = alle Reisenden */
+  travelers: string[]
   notes: string | null
   attachments: Attachment[]
 }
@@ -62,6 +64,7 @@ export interface Trip {
   start_date: string
   end_date: string
   destinations: Destination[]
+  travelers: string[]
   currency: string
   budget: number | null
   archived: boolean
@@ -164,7 +167,7 @@ export interface AppInfo {
   version: string
 }
 
-export type TripInput = Pick<Trip, 'title' | 'start_date' | 'end_date' | 'destinations' | 'currency'> & {
+export type TripInput = Pick<Trip, 'title' | 'start_date' | 'end_date' | 'destinations' | 'currency' | 'travelers'> & {
   description?: string | null
   budget?: number | null
 }

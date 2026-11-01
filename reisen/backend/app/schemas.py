@@ -37,6 +37,17 @@ def _check_local_dt(v: Optional[str]) -> Optional[str]:
     return v[:16]
 
 
+def _clean_names(v: Optional[list[str]]) -> Optional[list[str]]:
+    if v is None:
+        return None
+    out: list[str] = []
+    for n in v:
+        n = (n or "").strip()[:60]
+        if n and n.lower() not in {x.lower() for x in out}:
+            out.append(n)
+    return out
+
+
 # ---------- Reisen ----------
 class TripIn(BaseModel):
     title: str = Field(min_length=1, max_length=200)
@@ -44,8 +55,14 @@ class TripIn(BaseModel):
     start_date: date
     end_date: date
     destinations: list[Destination] = []
+    travelers: list[str] = []
     currency: str = Field(default="EUR", min_length=3, max_length=3)
     budget: Optional[float] = None
+
+    @field_validator("travelers")
+    @classmethod
+    def _names(cls, v):
+        return _clean_names(v)
 
     @model_validator(mode="after")
     def _dates(self):
@@ -60,9 +77,15 @@ class TripPatch(BaseModel):
     start_date: Optional[date] = None
     end_date: Optional[date] = None
     destinations: Optional[list[Destination]] = None
+    travelers: Optional[list[str]] = None
     currency: Optional[str] = Field(default=None, min_length=3, max_length=3)
     budget: Optional[float] = None
     archived: Optional[bool] = None
+
+    @field_validator("travelers")
+    @classmethod
+    def _names(cls, v):
+        return _clean_names(v)
 
 
 class NextBooking(BaseModel):
@@ -156,6 +179,7 @@ class TripOut(BaseModel):
     start_date: date
     end_date: date
     destinations: list[dict[str, Any]]
+    travelers: list[str] = []
     currency: str
     budget: Optional[float]
     archived: bool
@@ -190,6 +214,7 @@ class BookingIn(BaseModel):
     cost: Optional[float] = None
     cost_currency: Optional[str] = None
     details: dict[str, Any] = {}
+    travelers: list[str] = []
     notes: Optional[str] = None
 
     @field_validator("start_at", "end_at")
@@ -213,6 +238,7 @@ class BookingPatch(BaseModel):
     cost: Optional[float] = None
     cost_currency: Optional[str] = None
     details: Optional[dict[str, Any]] = None
+    travelers: Optional[list[str]] = None
     notes: Optional[str] = None
 
     @field_validator("start_at", "end_at")
@@ -252,6 +278,7 @@ class BookingOut(BaseModel):
     cost: Optional[float]
     cost_currency: Optional[str]
     details: dict[str, Any]
+    travelers: list[str] = []
     notes: Optional[str]
     attachments: list[AttachmentOut] = []
     created_at: datetime

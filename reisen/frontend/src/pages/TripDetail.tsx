@@ -1,5 +1,5 @@
 import {
-  Archive, ArchiveRestore, ArrowLeft, CalendarDays, FileText, ImagePlus, ListChecks, MapPin, MoreHorizontal,
+  Archive, ArchiveRestore, ArrowLeft, CalendarCheck, CalendarDays, FileText, ImagePlus, ListChecks, MapPin, MoreHorizontal,
   Map as MapIcon, Pencil, Plus, Receipt, Ticket, Trash2, Wallet,
 } from 'lucide-react'
 import { useCallback, useEffect, useRef, useState } from 'react'
@@ -7,6 +7,8 @@ import { Link, useNavigate, useParams } from 'react-router-dom'
 import { api, type AppInfo, type Attachment, type Booking, type BookingType, type Place, type TripDetail as TD } from '../api'
 import BookingCard from '../components/BookingCard'
 import BookingForm from '../components/BookingForm'
+import Costs from '../components/Costs'
+import DayView, { defaultDay } from '../components/DayView'
 import Documents from '../components/Documents'
 import Planning from '../components/Planning'
 import PlaceForm from '../components/PlaceForm'
@@ -18,17 +20,19 @@ import TripForm from '../components/TripForm'
 import { BOOKING_TYPES, TYPE_ORDER } from '../bookingTypes'
 import { cls, countdownLabel, fmtMoney, fmtRange, gradientFor, useIsDesktop } from '../util'
 
-type Tab = 'ablauf' | 'planung' | 'buchungen' | 'dokumente' | 'aufgaben'
+type Tab = 'ablauf' | 'tag' | 'planung' | 'buchungen' | 'kosten' | 'dokumente' | 'aufgaben'
 const TABS: { id: Tab; label: string; icon: typeof CalendarDays }[] = [
   { id: 'ablauf', label: 'Ablauf', icon: CalendarDays },
+  { id: 'tag', label: 'Tag', icon: CalendarCheck },
   { id: 'planung', label: 'Planung', icon: MapIcon },
   { id: 'buchungen', label: 'Buchungen', icon: Ticket },
+  { id: 'kosten', label: 'Kosten', icon: Wallet },
   { id: 'dokumente', label: 'Dokumente', icon: FileText },
   { id: 'aufgaben', label: 'Aufgaben', icon: ListChecks },
 ]
 
 export default function TripDetail({ info }: { info: AppInfo | null }) {
-  const { id = '', tab = 'ablauf' } = useParams()
+  const { id = '', tab = 'ablauf', day: dayParam } = useParams()
   const nav = useNavigate()
   const [trip, setTrip] = useState<TD | null>(null)
   const [error, setError] = useState('')
@@ -130,6 +134,7 @@ export default function TripDetail({ info }: { info: AppInfo | null }) {
             label={trip.budget ? `Budget ${fmtMoney(trip.budget, trip.currency)}` : 'Kosten'}
             value={fmtMoney(trip.total_cost, trip.currency) || '–'}
             bar={budgetPct}
+            onClick={() => nav(`/trip/${trip.id}/kosten`, { replace: true })}
           />
         </div>
         {trip.description && <p className="mb-4 whitespace-pre-line text-sm text-slate-600 dark:text-slate-300">{trip.description}</p>}
@@ -167,6 +172,7 @@ export default function TripDetail({ info }: { info: AppInfo | null }) {
               )}
               <Timeline
                 trip={trip}
+                onDayClick={(d) => nav(`/trip/${trip.id}/tag/${d}`)}
                 onOpen={(b) => setBookingForm({ booking: b })}
                 onOpenPlace={setPlaceEdit}
                 onLocate={(lat, lon) => { setFocus({ lat, lon, zoom: 15, key: Date.now() }); setShowMap(true) }}
@@ -182,6 +188,20 @@ export default function TripDetail({ info }: { info: AppInfo | null }) {
               </div>
             )}
           </div>
+        )}
+
+        {current === 'tag' && (
+          <DayView
+            trip={trip}
+            day={dayParam && /^\d{4}-\d{2}-\d{2}$/.test(dayParam) ? dayParam : defaultDay(trip)}
+            onDay={(d) => nav(`/trip/${trip.id}/tag/${d}`, { replace: true })}
+            onOpen={(b) => setBookingForm({ booking: b })}
+            onOpenPlace={setPlaceEdit}
+            onPreview={setPreview}
+            onAdd={() => setBookingForm({})}
+            onPlan={() => nav(`/trip/${trip.id}/planung`, { replace: true })}
+            onTasks={() => nav(`/trip/${trip.id}/aufgaben`, { replace: true })}
+          />
         )}
 
         {current === 'planung' && <Planning trip={trip} onChanged={load} onOpenBooking={(b) => setBookingForm({ booking: b })} />}
@@ -215,12 +235,14 @@ export default function TripDetail({ info }: { info: AppInfo | null }) {
           </div>
         )}
 
+        {current === 'kosten' && <Costs trip={trip} onOpen={(b) => setBookingForm({ booking: b })} onEditTrip={() => setEditing(true)} />}
+
         {current === 'dokumente' && <Documents trip={trip} onChanged={load} onPreview={setPreview} />}
 
         {current === 'aufgaben' && <Tasks trip={trip} onChanged={load} />}
 
         <p className="mt-10 flex items-center justify-center gap-2 text-xs text-slate-400">
-          <MapPin size={14} /> Notizen, Ausgaben und die HA-Anbindung folgen in der nächsten Etappe.
+          <MapPin size={14} /> Notizen und die HA-Anbindung (Countdown, Kalender) folgen in der nächsten Etappe.
         </p>
       </div>
 

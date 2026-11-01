@@ -15,10 +15,14 @@ interface Props {
   onLocate: (lat: number, lon: number) => void
   onPreview: (a: Attachment) => void
   onAdd: () => void
+  /** Nur diesen Tag anzeigen (Einzeltag-Ansicht) */
+  onlyDay?: string
+  /** Klick auf eine Tages-Überschrift */
+  onDayClick?: (day: string) => void
 }
 
 /** Chronologischer Ablauf nach Tagen: Buchungen und geplante Orte. Mehrtägige Buchungen erscheinen bei Beginn und Ende. */
-export default function Timeline({ trip, onOpen, onOpenPlace, onLocate, onPreview, onAdd }: Props) {
+export default function Timeline({ trip, onOpen, onOpenPlace, onLocate, onPreview, onAdd, onlyDay, onDayClick }: Props) {
   const entries: Entry[] = []
   const undated: Booking[] = []
   const hhmm = (local: string | null) => (local && local.length >= 16 ? local.slice(11, 16) : '00:00')
@@ -35,13 +39,14 @@ export default function Timeline({ trip, onOpen, onOpenPlace, onLocate, onPrevie
     if (split && b.end_at) entries.push({ kind: 'booking', booking: b, role: 'end', day: localDay(b.end_at), sort: hhmm(b.end_at) })
   }
 
-  // Geplante Orte: mit Uhrzeit einsortiert, ohne Uhrzeit in ihrer Reihenfolge ans Ende
+  // Geplante Orte: mit Uhrzeit einsortiert, ohne Uhrzeit in ihrer Reihenfolge um die Mittagszeit
+  // (also nach Frühflug/Frühstück, vor Abendterminen wie Restaurant-Reservierungen)
   const planned = trip.places.filter((p) => p.day).sort((a, b) => a.sort_order - b.sort_order)
   const counter = new Map<string, number>()
   for (const p of planned) {
     const n = (counter.get(p.day!) ?? 0) + 1
     counter.set(p.day!, n)
-    entries.push({ kind: 'place', place: p, number: n, day: p.day!, sort: p.time ?? `99:${String(p.sort_order).padStart(4, '0')}` })
+    entries.push({ kind: 'place', place: p, number: n, day: p.day!, sort: p.time ?? `12:00:${String(p.sort_order).padStart(4, '0')}` })
   }
 
   const byDay = new Map<string, Entry[]>()
@@ -52,9 +57,9 @@ export default function Timeline({ trip, onOpen, onOpenPlace, onLocate, onPrevie
   for (const list of byDay.values()) list.sort((a, b) => a.sort.localeCompare(b.sort))
 
   const tripDays = eachDay(trip.start_date, trip.end_date)
-  const allDays = Array.from(new Set([...tripDays, ...byDay.keys()])).sort()
+  const allDays = onlyDay ? [onlyDay] : Array.from(new Set([...tripDays, ...byDay.keys()])).sort()
 
-  if (trip.bookings.length === 0 && planned.length === 0) {
+  if (!onlyDay && trip.bookings.length === 0 && planned.length === 0) {
     return (
       <div className="card flex flex-col items-center gap-3 px-6 py-14 text-center">
         <span className="flex h-14 w-14 items-center justify-center rounded-2xl bg-brand-50 text-brand-600 dark:bg-brand-500/15"><CalendarPlus size={26} /></span>
@@ -74,10 +79,18 @@ export default function Timeline({ trip, onOpen, onOpenPlace, onLocate, onPrevie
         if (outside && !list.length) return null
         return (
           <section key={day} className="relative">
-            <div className="sticky top-[50px] z-10 -mx-1 mb-2 flex items-baseline gap-3 bg-slate-50/90 px-1 py-1.5 backdrop-blur dark:bg-slate-950/90">
-              {!outside && <span className="text-xs font-bold uppercase tracking-wider" style={{ color: dayColor(idx) }}>Tag {idx + 1}</span>}
-              <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-200">{fmtDayHeader(day)}</h3>
-            </div>
+            {!onlyDay && (
+              <button
+                onClick={() => onDayClick?.(day)}
+                disabled={!onDayClick}
+                className="group sticky top-[50px] z-10 -mx-1 mb-2 flex w-full items-baseline gap-3 bg-slate-50/90 px-1 py-1.5 text-left backdrop-blur dark:bg-slate-950/90"
+                title={onDayClick ? 'Tag einzeln ansehen' : undefined}
+              >
+                {!outside && <span className="text-xs font-bold uppercase tracking-wider" style={{ color: dayColor(idx) }}>Tag {idx + 1}</span>}
+                <h3 className="text-sm font-semibold text-slate-700 group-enabled:group-hover:underline dark:text-slate-200">{fmtDayHeader(day)}</h3>
+                {onDayClick && <span className="ml-auto text-xs text-slate-400 opacity-0 transition group-hover:opacity-100">Tag ansehen →</span>}
+              </button>
+            )}
             {list.length ? (
               <div className="relative space-y-3 pl-4 before:absolute before:bottom-2 before:left-1 before:top-2 before:w-0.5 before:rounded before:bg-slate-200 dark:before:bg-slate-800">
                 {list.map((e) =>
@@ -95,13 +108,15 @@ export default function Timeline({ trip, onOpen, onOpenPlace, onLocate, onPrevie
                 )}
               </div>
             ) : (
-              <p className="pl-4 text-sm italic text-slate-400">Nichts geplant</p>
+              <p className={cls('text-sm italic text-slate-400', onlyDay ? 'card px-4 py-8 text-center not-italic' : 'pl-4')}>
+                {onlyDay ? 'Für diesen Tag ist noch nichts geplant. Orte kannst du im Reiter „Planung“ auf den Tag ziehen.' : 'Nichts geplant'}
+              </p>
             )}
           </section>
         )
       })}
 
-      {undated.length > 0 && (
+      {!onlyDay && undated.length > 0 && (
         <section>
           <h3 className="mb-2 text-sm font-semibold text-slate-500">Ohne Datum</h3>
           <div className="space-y-3">

@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.4.0 – Reisende, Kosten, Tagesansicht
+- **Reisende** pro Reise (freie Namen) und pro Buchung „Für wen“ (Standard: alle)
+- Neuer Reiter **Kosten**: Gesamt, gebucht vs. noch offen, **pro Person**, nach Kategorie, Einzelposten; Buchungen ohne Preis werden markiert
+- Neuer Reiter **Tag**: Einzeltag-Ansicht mit Tagesleiste, Übernachtung, fälligen Aufgaben, Tageskosten und Karte nur für diesen Tag; Blättern mit ‹ › oder Pfeiltasten
+- Im Ablauf führt ein Klick auf die Tages-Überschrift zur Tagesansicht
+
 ## 0.3.4
 - Neuer Buchungsstatus **Todo** (noch zu buchen), zwischen „Idee“ und „Gebucht“
 

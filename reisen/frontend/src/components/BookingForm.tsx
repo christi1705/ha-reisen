@@ -50,6 +50,7 @@ export default function BookingForm({ trip, booking, initialType, onClose, onSav
   const [costCur, setCostCur] = useState(booking?.cost_currency ?? trip.currency)
   const [details, setDetails] = useState<Record<string, string>>(booking?.details ?? {})
   const [notes, setNotes] = useState(booking?.notes ?? '')
+  const [forWhom, setForWhom] = useState<string[]>(booking?.travelers?.filter((t) => trip.travelers.includes(t)) ?? [])
   const [attachments, setAttachments] = useState<Attachment[]>(booking?.attachments ?? [])
   const [pending, setPending] = useState<File[]>([])
   const [busy, setBusy] = useState(false)
@@ -103,6 +104,8 @@ export default function BookingForm({ trip, booking, initialType, onClose, onSav
       cost_currency: cost ? costCur.toUpperCase() : null,
       details: Object.fromEntries(Object.entries(details).filter(([, v]) => v !== '' && v != null)),
       notes: notes.trim() || null,
+      // Alle ausgewählt = leer speichern (gilt dann auch für später hinzugefügte Reisende)
+      travelers: forWhom.length && forWhom.length < trip.travelers.length ? forWhom : [],
     }
     setBusy(true)
     try {
@@ -305,6 +308,43 @@ export default function BookingForm({ trip, booking, initialType, onClose, onSav
             </div>
           </div>
         </div>
+
+        {/* Für wen */}
+        {trip.travelers.length > 1 && (
+          <div>
+            <label className="label">Für wen</label>
+            <div className="flex flex-wrap gap-1.5">
+              <button
+                type="button"
+                onClick={() => setForWhom([])}
+                className={cls('chip py-1 transition', forWhom.length === 0 || forWhom.length === trip.travelers.length ? 'bg-brand-600 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-300')}
+              >
+                Alle ({trip.travelers.length})
+              </button>
+              {trip.travelers.map((t) => {
+                const allSel = forWhom.length === 0
+                const on = !allSel && forWhom.includes(t)
+                return (
+                  <button
+                    key={t}
+                    type="button"
+                    onClick={() => {
+                      const base = allSel ? [] : forWhom
+                      const next = base.includes(t) ? base.filter((x) => x !== t) : [...base, t]
+                      setForWhom(next.length === trip.travelers.length ? [] : next)
+                    }}
+                    className={cls('chip py-1 transition', on ? 'bg-brand-600 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-300')}
+                  >
+                    {t}
+                  </button>
+                )
+              })}
+            </div>
+            {cost && forWhom.length > 0 && forWhom.length < trip.travelers.length && (
+              <p className="mt-1 px-1 text-xs text-slate-500">Kosten werden auf {forWhom.join(', ')} verteilt.</p>
+            )}
+          </div>
+        )}
 
         {/* Typ-spezifisch */}
         {cfg.details.length > 0 && (

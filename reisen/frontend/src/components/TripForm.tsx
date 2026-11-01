@@ -1,4 +1,4 @@
-import { MapPin, X } from 'lucide-react'
+import { MapPin, User, X } from 'lucide-react'
 import { useState } from 'react'
 import { api, type Destination, type Trip, type TripDetail } from '../api'
 import Modal from './Modal'
@@ -19,6 +19,8 @@ export default function TripForm({ open, trip, defaultCurrency, onClose, onSaved
   const [end, setEnd] = useState(trip?.end_date ?? '')
   const [dests, setDests] = useState<Destination[]>(trip?.destinations ?? [])
   const [destInput, setDestInput] = useState('')
+  const [travelers, setTravelers] = useState<string[]>(trip?.travelers ?? [])
+  const [travelerInput, setTravelerInput] = useState('')
   const [currency, setCurrency] = useState(trip?.currency ?? defaultCurrency)
   const [budget, setBudget] = useState(trip?.budget?.toString() ?? '')
   const [busy, setBusy] = useState(false)
@@ -30,8 +32,17 @@ export default function TripForm({ open, trip, defaultCurrency, onClose, onSaved
     setDestInput('')
   }
 
+  const addTraveler = () => {
+    const n = travelerInput.trim()
+    if (n && !travelers.some((t) => t.toLowerCase() === n.toLowerCase())) setTravelers([...travelers, n])
+    setTravelerInput('')
+  }
+
   const save = async () => {
     setError('')
+    const allTravelers = travelerInput.trim() && !travelers.some((t) => t.toLowerCase() === travelerInput.trim().toLowerCase())
+      ? [...travelers, travelerInput.trim()]
+      : travelers
     const allDests = destInput.trim() ? [...dests, { name: destInput.trim() }] : dests
     const payload = {
       title: title.trim(),
@@ -39,6 +50,7 @@ export default function TripForm({ open, trip, defaultCurrency, onClose, onSaved
       start_date: start,
       end_date: end || start,
       destinations: allDests,
+      travelers: allTravelers,
       currency: currency.toUpperCase(),
       budget: budget ? Number(budget.replace(',', '.')) : null,
     }
@@ -107,6 +119,25 @@ export default function TripForm({ open, trip, defaultCurrency, onClose, onSaved
               onSubmitText={() => addDest()}
             />
           </div>
+        </div>
+        <div>
+          <label className="label">Reisende</label>
+          <div className="flex flex-wrap gap-2">
+            {travelers.map((t) => (
+              <span key={t} className="chip bg-slate-100 py-1 text-slate-700 dark:bg-slate-800 dark:text-slate-200">
+                <User size={12} /> {t}
+                <button onClick={() => setTravelers(travelers.filter((x) => x !== t))} aria-label="Entfernen"><X size={12} /></button>
+              </span>
+            ))}
+          </div>
+          <input
+            className="input mt-2"
+            value={travelerInput}
+            onChange={(e) => setTravelerInput(e.target.value)}
+            onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ',') { e.preventDefault(); addTraveler() } }}
+            onBlur={addTraveler}
+            placeholder="Name, mit Enter hinzufügen"
+          />
         </div>
         <div>
           <label className="label">Beschreibung</label>

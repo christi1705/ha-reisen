@@ -16,6 +16,7 @@ function App() {
         <Route path="/" element={<TripList info={info} />} />
         <Route path="/trip/:id" element={<TripDetail info={info} />} />
         <Route path="/trip/:id/:tab" element={<TripDetail info={info} />} />
+        <Route path="/trip/:id/:tab/:day" element={<TripDetail info={info} />} />
         <Route path="*" element={<TripList info={info} />} />
       </Routes>
     </HashRouter>

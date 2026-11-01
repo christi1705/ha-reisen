@@ -24,7 +24,7 @@ async def lifespan(_app: FastAPI):
     yield
 
 
-app = FastAPI(title="Reisen", version="0.3.4", lifespan=lifespan, docs_url="/api/docs", openapi_url="/api/openapi.json")
+app = FastAPI(title="Reisen", version="0.4.0", lifespan=lifespan, docs_url="/api/docs", openapi_url="/api/openapi.json")
 # --- Zugriffsschutz -----------------------------------------------------------
 # Die App hat keinen offenen Port. Erreichbar ist sie nur über HA Ingress, das den
 # HA-Login prüft. Damit andere Container im internen Docker-Netz von HA sie nicht

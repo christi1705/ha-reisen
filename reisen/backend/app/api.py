@@ -92,8 +92,9 @@ def att_out(a: Attachment) -> AttachmentOut:
 
 def booking_out(b: Booking, atts: list[Attachment]) -> BookingOut:
     return BookingOut(
-        **b.model_dump(exclude={"details", "from_location", "to_location"}),
+        **b.model_dump(exclude={"details", "from_location", "to_location", "travelers"}),
         details=b.details or {},
+        travelers=b.travelers or [],
         from_location=b.from_location,
         to_location=b.to_location,
         start_utc=to_utc(b.start_at, b.start_tz),
@@ -137,6 +138,7 @@ def trip_out(s: Session, t: Trip, detail: bool = False):
         start_date=t.start_date,
         end_date=t.end_date,
         destinations=t.destinations or [],
+        travelers=t.travelers or [],
         currency=t.currency,
         budget=t.budget,
         archived=t.archived,
@@ -234,7 +236,7 @@ def info(request: Request):
         "user": current_user(request),
         "default_currency": DEFAULT_CURRENCY,
         "default_timezone": DEFAULT_TIMEZONE,
-        "version": "0.3.4",
+        "version": "0.4.0",
     }
 
 
