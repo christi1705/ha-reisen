@@ -34,3 +34,10 @@ Alle Daten (Datenbank und Dateien) liegen im App-Speicher (`/data`) und sind in 
 Home-Assistant-Backups enthalten.
 
 Alle HA-Benutzer sehen und bearbeiten alle Reisen.
+
+## Sicherheit
+- Die App hat **keinen offenen Port**. Zugriff gibt es nur über Home Assistant (Ingress) – also nur mit HA-Login,
+  lokal wie über Nabu Casa.
+- Anfragen, die nicht vom Ingress-Gateway kommen (z. B. von anderen Apps im internen Netz), werden abgewiesen.
+- Die App hat keine Rechte auf Home Assistant selbst (kein Zugriff auf Geräte, Supervisor oder Docker).
+- Hochgeladene Dateien werden nur als PDF/Bild angezeigt, alles andere nur heruntergeladen.

@@ -18,7 +18,7 @@ Inspiriert von [Surmai](https://surmai.app/) (Übersichtlichkeit) und [TREK](htt
 ```bash
 # Backend
 cd reisen/backend && pip install -r requirements.txt
-REISEN_DATA_DIR=./.data uvicorn app.main:app --port 8099 --reload
+REISEN_ALLOW_ALL=1 REISEN_DATA_DIR=./.data uvicorn app.main:app --port 8099 --reload
 # Frontend (Proxy auf :8099)
 cd reisen/frontend && npm install && npm run dev
 ```

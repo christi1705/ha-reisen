@@ -38,6 +38,9 @@ from .schemas import (
 router = APIRouter(prefix="/api")
 
 IMAGE_TYPES = {"image/jpeg", "image/png", "image/webp", "image/gif"}
+# Nur diese Typen werden im Browser angezeigt. Alles andere (HTML, SVG, …) wird als
+# Download ausgeliefert, damit hochgeladene Dateien keinen Code im HA-Kontext ausführen.
+INLINE_TYPES = IMAGE_TYPES | {"application/pdf"}
 
 
 # ---------------------------------------------------------------- Hilfen
@@ -231,7 +234,7 @@ def info(request: Request):
         "user": current_user(request),
         "default_currency": DEFAULT_CURRENCY,
         "default_timezone": DEFAULT_TIMEZONE,
-        "version": "0.3.2",
+        "version": "0.3.3",
     }
 
 
@@ -467,12 +470,16 @@ def get_attachment_file(att_id: str, download: bool = False, s: Session = Depend
     path = FILES_DIR / a.trip_id / a.storage_name
     if not path.exists():
         raise HTTPException(404, "Datei fehlt")
+    safe = a.mime in INLINE_TYPES
+    headers = {"Cache-Control": "private, max-age=86400", "X-Content-Type-Options": "nosniff"}
+    if not safe:
+        headers["Content-Security-Policy"] = "default-src 'none'; sandbox"
     return FileResponse(
         path,
-        media_type=a.mime,
+        media_type=a.mime if safe else "application/octet-stream",
         filename=a.filename,
-        content_disposition_type="attachment" if download else "inline",
-        headers={"Cache-Control": "private, max-age=86400", "X-Content-Type-Options": "nosniff"},
+        content_disposition_type="inline" if (safe and not download) else "attachment",
+        headers=headers,
     )
 
 

@@ -20,4 +20,5 @@ COPY backend/data ./data
 COPY --from=frontend /build/dist ./static
 
 EXPOSE 8099
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8099", "--proxy-headers", "--forwarded-allow-ips", "*"]
+# Keine Proxy-Header auswerten: die Absender-IP muss echt sein (Ingress-Prüfung in app/main.py)
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8099", "--no-proxy-headers"]

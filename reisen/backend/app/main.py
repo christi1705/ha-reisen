@@ -3,8 +3,10 @@
 import mimetypes
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI, HTTPException
-from fastapi.responses import FileResponse
+import os
+
+from fastapi import FastAPI, HTTPException, Request
+from fastapi.responses import FileResponse, PlainTextResponse
 from fastapi.staticfiles import StaticFiles
 
 from . import api, geo, ref, tiles
@@ -22,7 +24,27 @@ async def lifespan(_app: FastAPI):
     yield
 
 
-app = FastAPI(title="Reisen", version="0.3.2", lifespan=lifespan, docs_url="/api/docs", openapi_url="/api/openapi.json")
+app = FastAPI(title="Reisen", version="0.3.3", lifespan=lifespan, docs_url="/api/docs", openapi_url="/api/openapi.json")
+# --- Zugriffsschutz -----------------------------------------------------------
+# Die App hat keinen offenen Port. Erreichbar ist sie nur über HA Ingress, das den
+# HA-Login prüft. Damit andere Container im internen Docker-Netz von HA sie nicht
+# direkt (ohne Login) aufrufen können, werden nur Anfragen vom Ingress-Gateway
+# (172.30.32.2) angenommen. REISEN_ALLOW_ALL=1 schaltet das für die Entwicklung ab.
+INGRESS_IPS = {"172.30.32.2", "127.0.0.1", "::1"}
+ALLOW_ALL = os.environ.get("REISEN_ALLOW_ALL") == "1"
+
+
+@app.middleware("http")
+async def ingress_only(request: Request, call_next):
+    peer = request.client.host if request.client else ""
+    if not ALLOW_ALL and peer not in INGRESS_IPS:
+        return PlainTextResponse("Zugriff nur über Home Assistant", status_code=403)
+    response = await call_next(request)
+    response.headers.setdefault("X-Content-Type-Options", "nosniff")
+    response.headers.setdefault("Referrer-Policy", "same-origin")
+    return response
+
+
 app.include_router(api.router)
 app.include_router(ref.router)
 app.include_router(geo.router)

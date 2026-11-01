@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.3.3 – Sicherheit
+- Nur noch Anfragen über HA Ingress (mit HA-Login) werden angenommen; direkte Zugriffe aus dem internen Docker-Netz werden abgewiesen
+- Hochgeladene Dateien: nur PDFs und Bilder werden im Browser angezeigt, alles andere (z. B. HTML, SVG) nur als Download
+
 ## 0.3.2
 - Fix: OpenStreetMap-Karte wurde blockiert („Access blocked“), weil HA keinen Referer mitsendet.
   Kacheln werden jetzt über die App geladen und 30 Tage zwischengespeichert (gemäß OSM Tile Usage Policy).
