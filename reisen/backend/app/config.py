@@ -25,4 +25,5 @@ def load_options() -> dict:
 
 OPTIONS = load_options()
 DEFAULT_CURRENCY = OPTIONS.get("default_currency", "EUR")
+CARTO_API_KEY = (OPTIONS.get("carto_api_key") or "").strip()
 DEFAULT_TIMEZONE = OPTIONS.get("default_timezone", os.environ.get("TZ", "Europe/Berlin"))

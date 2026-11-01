@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.3.1
+- Karte funktioniert ohne Schlüssel: Standard-Karte von OpenStreetMap
+- Neue Option `carto_api_key` für die Kartenansicht CARTO Voyager (CARTO verlangt seit 09/2026 einen Schlüssel)
+
 ## 0.3.0 – Etappe 2: Karte & Planung
 - **Interaktive Karte** (OpenStreetMap / CARTO Voyager): Orte, Unterkünfte, Restaurants, Aktivitäten, Flugbögen und Bahn-/Autostrecken; Ebenen ein-/ausblendbar
 - **Ortssuche** über OpenStreetMap (Photon, Fallback Nominatim) – im Planungs-Reiter, in Buchungen und bei den Reisezielen

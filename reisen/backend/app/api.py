@@ -206,13 +206,31 @@ def _guess_mime(upload: UploadFile, filename: str) -> str:
 # ---------------------------------------------------------------- Allgemein
 @router.get("/info")
 def info(request: Request):
-    from .config import DEFAULT_CURRENCY
+    from .config import CARTO_API_KEY, DEFAULT_CURRENCY
 
+    if CARTO_API_KEY:
+        tiles = {
+            "url": "https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png?key=" + CARTO_API_KEY,
+            "attribution": '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>',
+            "subdomains": "abcd",
+            "max_zoom": 20,
+            "provider": "carto",
+        }
+    else:
+        # Ohne CARTO-Schlüssel: Standard-Karte von OpenStreetMap (kein Schlüssel nötig)
+        tiles = {
+            "url": "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
+            "attribution": '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>-Mitwirkende',
+            "subdomains": "",
+            "max_zoom": 19,
+            "provider": "osm",
+        }
     return {
+        "tiles": tiles,
         "user": current_user(request),
         "default_currency": DEFAULT_CURRENCY,
         "default_timezone": DEFAULT_TIMEZONE,
-        "version": "0.3.0",
+        "version": "0.3.1",
     }
 
 

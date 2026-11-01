@@ -1,5 +1,5 @@
 name: Reisen
-version: "0.3.0"
+version: "0.3.1"
 slug: reisen
 description: Persönliche Reiseorganisation – Reisen, Buchungen und Dokumente an einem Ort
 url: https://github.com/christi1705/ha-reisen
@@ -16,5 +16,7 @@ panel_title: Reisen
 backup: hot
 options:
   default_currency: EUR
+  carto_api_key: ""
 schema:
   default_currency: match(^[A-Z]{3}$)
+  carto_api_key: str?

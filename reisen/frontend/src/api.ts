@@ -148,7 +148,16 @@ export interface Airline {
   country: string
 }
 
+export interface TileConfig {
+  url: string
+  attribution: string
+  subdomains: string
+  max_zoom: number
+  provider: 'carto' | 'osm'
+}
+
 export interface AppInfo {
+  tiles: TileConfig
   user: string | null
   default_currency: string
   default_timezone: string
@@ -183,8 +192,11 @@ async function req<T>(method: string, url: string, body?: unknown): Promise<T> {
   return res.json()
 }
 
+let infoPromise: Promise<AppInfo> | null = null
+
 export const api = {
-  info: () => req<AppInfo>('GET', 'api/info'),
+  /** Einmal pro Seitenaufruf geladen und zwischengespeichert */
+  info: () => (infoPromise ??= req<AppInfo>('GET', 'api/info').catch((e) => { infoPromise = null; throw e })),
   trips: () => req<Trip[]>('GET', 'api/trips'),
   trip: (id: string) => req<TripDetail>('GET', `api/trips/${id}`),
   createTrip: (d: TripInput) => req<TripDetail>('POST', 'api/trips', d),

@@ -4,7 +4,7 @@ import { Layers, Maximize2 } from 'lucide-react'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { MapContainer, Marker, Polyline, TileLayer, Tooltip, useMap } from 'react-leaflet'
-import type { Booking, Place, TripDetail } from '../api'
+import { api, type Booking, type Place, type TileConfig, type TripDetail } from '../api'
 import { BOOKING_TYPES } from '../bookingTypes'
 import { PLACE_CATEGORIES, dayColor } from '../places'
 import { cls, eachDay } from '../util'
@@ -30,6 +30,13 @@ interface Props {
 
 type LayerKey = 'places' | 'stays' | 'transport'
 const LAYER_LABEL: Record<LayerKey, string> = { places: 'Orte', stays: 'Unterkünfte & Aktivitäten', transport: 'Verkehr' }
+const OSM_FALLBACK: TileConfig = {
+  url: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+  attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>-Mitwirkende',
+  subdomains: '',
+  max_zoom: 19,
+  provider: 'osm',
+}
 const STAY_TYPES = new Set(['lodging', 'restaurant', 'activity'])
 
 const iconCache = new Map<string, L.DivIcon>()
@@ -151,6 +158,8 @@ export default function TripMap({ trip, activeDay, focus, onPlaceClick, onBookin
   const [layers, setLayers] = useState<Record<LayerKey, boolean>>({ places: true, stays: true, transport: true })
   const [menu, setMenu] = useState(false)
   const [fitNonce, setFitNonce] = useState(0)
+  const [tiles, setTiles] = useState<TileConfig | null>(null)
+  useEffect(() => { api.info().then((i) => setTiles(i.tiles)).catch(() => setTiles(OSM_FALLBACK)) }, [])
 
   const days = useMemo(() => eachDay(trip.start_date, trip.end_date), [trip.start_date, trip.end_date])
   const dayIndex = (d: string | null) => (d ? days.indexOf(d) : -1)
@@ -193,12 +202,15 @@ export default function TripMap({ trip, activeDay, focus, onPlaceClick, onBookin
   return (
     <div className={cls('relative isolate overflow-hidden rounded-2xl ring-1 ring-slate-900/10 dark:ring-white/10', className)}>
       <MapContainer center={[30, 10]} zoom={2} className="h-full w-full" zoomControl={false} attributionControl>
-        <TileLayer
-          url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
-          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>'
-          subdomains="abcd"
-          maxZoom={20}
-        />
+        {tiles && (
+          <TileLayer
+            key={tiles.url}
+            url={tiles.url}
+            attribution={tiles.attribution}
+            {...(tiles.subdomains ? { subdomains: tiles.subdomains } : {})}
+            maxZoom={tiles.max_zoom}
+          />
+        )}
         <FitBounds points={fitPoints} fitKey={fitKey} />
         <FlyTo focus={focus} />
         <InvalidateOnResize />
